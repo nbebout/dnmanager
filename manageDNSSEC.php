@@ -58,7 +58,7 @@
             <td><input type="text" name="digest"></td>
           </tr>
         </table>
-
+        <br />
         <input type="hidden" name="sld" value="<?= $sld ?>">
         <input type="hidden" name="tld" value="<?= $tld ?>">
         <input type="submit" name="submit" value="Add">
