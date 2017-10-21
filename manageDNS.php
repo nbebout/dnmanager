@@ -32,6 +32,13 @@
 <html>
   <head>
     <title>Domain Name Manager</title>
+    <style>
+      table, th, td {
+        border: 1px solid black;
+        padding: 4px;
+      }
+      body { font-family: sans-serif; }
+    </style>
   </head>
 
   <body>
