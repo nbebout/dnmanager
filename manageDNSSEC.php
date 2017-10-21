@@ -1,30 +1,23 @@
 <?php
-  include('config.php');
+require_once('init.php');
 
-  if ($_POST['submit']) {
-    // URL for API request
-    $sld = urlencode($_POST['sld']);
-    $tld = urlencode($_POST['tld']);
-    $keytag = urlencode($_POST['keytag']);
-    $algorithm = urlencode($_POST['algorithm']);
-    $digesttype = urlencode($_POST['digesttype']);
-    $digest = urlencode($_POST['digest']);
+// $_REQUEST contains $_POST, $_GET, and $_COOKIE
+$sld = urlencode($_REQUEST['sld']);
+$tld = urlencode($_REQUEST['tld']);
 
-    $url = "https://$server/interface.asp?command=AddDnsSec&uid=$username&pw=$password&responsetype=xml&sld=$sld&tld=$tld&keytag=$keytag&alg=$algorithm&digesttype=$digesttype&digest=$digest";
-
-    // Load the API results into a SimpleXML object
-    simplexml_load_file($url);
-  } else {
-    $sld = urlencode($_GET['sld']);
-    $tld = urlencode($_GET['tld']);
-  }
-
+if ($_POST['submit']) {
   // URL for API request
-  $url = "https://$server/interface.asp?command=GetDnsSec&uid=$username&pw=$password&responsetype=xml&sld=$sld&tld=$tld";
+  $keytag = $_POST['keytag'];
+  $algorithm = $_POST['algorithm'];
+  $digesttype = $_POST['digesttype'];
+  $digest = $_POST['digest'];
 
-  // Load the API results into a SimpleXML object
-  $xml = simplexml_load_file($url);
-  $keylist = $xml->DnsSecData->KeyData;
+  $enomClient->AddDnsSec($sld, $tld, $keytag, intval($algorithm), $digesttype, $digest);
+}
+
+// Load the API results into a SimpleXML object
+$xml = $enomClient->GetDnsSec($sld, $tld);
+$keylist = $xml->DnsSecData->KeyData;
 ?>
 
 <!DOCTYPE html>

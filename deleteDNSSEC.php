@@ -1,17 +1,16 @@
 <?php
-  include('config.php');
+require_once('init.php');
 
-  // URL for API request
-  $sld = urlencode($_GET['sld']);
-  $tld = urlencode($_GET['tld']);
-  $keytag = urlencode($_GET['keytag']);
-  $algorithm = urlencode($_GET['algorithm']);
-  $digesttype = urlencode($_GET['digesttype']);
-  $digest = urlencode($_GET['digest']);
+$sld = $_GET['sld'];
+$tld = $_GET['tld'];
+$keytag = $_GET['keytag'];
+$algorithm = $_GET['algorithm'];
+$digesttype = $_GET['digesttype'];
+$digest = $_GET['digest'];
 
-  $url = "https://$server/interface.asp?command=DeleteDnsSec&uid=$username&pw=$password&responsetype=xml&sld=$sld&tld=$tld&keytag=$keytag&alg=$algorithm&digesttype=$digesttype&digest=$digest";
+$enomClient->DeleteDnsSec($sld, $tld, $keytag, intval($algorithm), $digesttype, $digest);
 
-  // Call API URL
-  simplexml_load_file($url);
-
-  header("Location: manageDNSSEC.php?sld=$sld&tld=$tld");
+// The client call encodes these values, encode here for our own use so they're not double encoded
+$sld = urlencode($_GET['sld']);
+$tld = urlencode($_GET['tld']);
+header("Location: manageDNSSEC.php?sld=$sld&tld=$tld");

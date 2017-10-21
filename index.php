@@ -1,12 +1,8 @@
 <?php
-  include('config.php');
+require_once('init.php');
 
-  // URL for API request
-  $url =  "https://$server/interface.asp?command=GetAllDomains&responsetype=xml&uid=$username&pw=$password";
-
-  // Load the API results into a SimpleXML object
-  $xml = simplexml_load_file($url);
-  $domainlist = $xml->GetAllDomains->DomainDetail;
+$xml = $enomClient->GetAllDomains();
+$domainlist = $xml->GetAllDomains->DomainDetail;
 ?>
 <html>
   <head>

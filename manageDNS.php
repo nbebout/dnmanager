@@ -1,39 +1,16 @@
 <?php
-  require('config.php');
+require_once('init.php');
 
-  // $_REQUEST contains $_POST, $_GET, and $_COOKIE
-  $sld = urlencode($_REQUEST['sld']);
-  $tld = urlencode($_REQUEST['tld']);
+// $_REQUEST contains $_POST, $_GET, and $_COOKIE
+$sld = urlencode($_REQUEST['sld']);
+$tld = urlencode($_REQUEST['tld']);
 
-  if (!is_null($_POST['submit'])) {
-    $nameservers = $_POST['ns'];
-    $nsQueryStrings = [];
+if (!is_null($_POST['submit'])) {
+  $enomClient->ModifyNS($sld, $tld, $_POST['ns']);
+}
 
-    $i = 1; // The count is out here because we don't know if all elements are valid
-    foreach ($nameservers as $ns) {
-      if ($i >= 13) break; // Enforce max of 12 servers. Ignore 13 and beyond if given.
-      if (trim($ns) === '') continue;
-      $ns = urlencode($ns);
-      $nsQueryStrings []= "ns$i=$ns";
-      $i++;
-    }
-
-    $nsQueryString = implode("&", $nsQueryStrings);
-
-    $url = "https://$server/interface.asp?command=ModifyNS&uid=$username&pw=$password&responsetype=xml&sld=$sld&tld=$tld&$nsQueryString";
-
-    // Load the API results into a SimpleXML object
-    simplexml_load_file($url);
-  }
-
-  $sld = 'example';
-  $tld = 'com';
-  // URL for API request
-  $url = "https://$server/interface.asp?command=GetDns&uid=$username&pw=$password&responsetype=xml&sld=$sld&tld=$tld";
-
-  // Load the API results into a SimpleXML object
-  $xml = simplexml_load_file($url);
-  $nslist = $xml->dns;
+$xml = $enomClient->GetDns($sld, $tld);
+$nslist = $xml->dns;
 ?>
 
 <!DOCTYPE html>
