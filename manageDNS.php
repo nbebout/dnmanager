@@ -1,25 +1,33 @@
 <?php
-  include('config.php');
+  require('config.php');
 
-  if ($_POST['submit']) {
-    // URL for API request
-    $sld = urlencode($_POST['sld']);
-    $tld = urlencode($_POST['tld']);
-    $ns1 = urlencode($_POST['ns1']);
-    $ns2 = urlencode($_POST['ns2']);
-    $ns3 = urlencode($_POST['ns3']);
-    $ns4 = urlencode($_POST['ns4']);
-    $ns5 = urlencode($_POST['ns5']);
+  // $_REQUEST contains $_POST, $_GET, and $_COOKIE
+  $sld = urlencode($_REQUEST['sld']);
+  $tld = urlencode($_REQUEST['tld']);
 
-    $url = "https://$server/interface.asp?command=ModifyNS&uid=$username&pw=$password&responsetype=xml&sld=$sld&tld=$tld&ns1=$ns1&ns2=$ns2&ns3=$ns3&ns4=$ns4&ns5=$ns5";
+  if (!is_null($_POST['submit'])) {
+    $nameservers = $_POST['ns'];
+    $nsQueryStrings = [];
+
+    $i = 1; // The count is out here because we don't know if all elements are valid
+    foreach ($nameservers as $ns) {
+      if ($i >= 13) break; // Enforce max of 12 servers. Ignore 13 and beyond if given.
+      if (trim($ns) === '') continue;
+      $ns = urlencode($ns);
+      $nsQueryStrings []= "ns$i=$ns";
+      $i++;
+    }
+
+    $nsQueryString = implode("&", $nsQueryStrings);
+
+    $url = "https://$server/interface.asp?command=ModifyNS&uid=$username&pw=$password&responsetype=xml&sld=$sld&tld=$tld&$nsQueryString";
 
     // Load the API results into a SimpleXML object
     simplexml_load_file($url);
-  } else {
-    $sld = urlencode($_GET['sld']);
-    $tld = urlencode($_GET['tld']);
   }
 
+  $sld = 'example';
+  $tld = 'com';
   // URL for API request
   $url = "https://$server/interface.asp?command=GetDns&uid=$username&pw=$password&responsetype=xml&sld=$sld&tld=$tld";
 
@@ -44,58 +52,63 @@
 
   <body>
     <h1>Domain Name Manager</h1>
-    <div style="display: none;" id="add-record-form">
-      <h3>Update nameservers for <?php echo "$sld.$tld"; ?></h3>
-
-      <form action="manageDNS.php" method="post">
-        <table>
-          <tr>
-            <td>NS1:</td>
-            <td><input type="text" name="ns1"></td>
-          </tr>
-          <tr>
-            <td>NS2:</td>
-            <td><input type="text" name="ns2"></td>
-          </tr>
-          <tr>
-            <td>NS3:</td>
-            <td><input type="text" name="ns3"></td>
-          </tr>
-          <tr>
-            <td>NS4:</td>
-            <td><input type="text" name="ns4"></td>
-          </tr>
-          <tr>
-            <td>NS5:</td>
-            <td><input type="text" name="ns5"></td>
-          </tr>
-        </table>
-        <br />
-        <input type="hidden" name="sld" value="<?= $sld ?>">
-        <input type="hidden" name="tld" value="<?= $tld ?>">
-        <input type="submit" name="submit" value="Update">
-      </form>
-    </div>
 
     <h3>Nameservers for <?= "$sld.$tld" ?></h3>
-    <table>
 
-      <?php foreach ($nslist as $ns): ?>
-      <tr>
-        <td><?= $ns ?></td>
-      </tr>
-      <?php endforeach; ?>
-    </table>
+    <form action="manageDNS.php" method="POST" style="display: none;" id="add-record-form">
+      <input type="hidden" name="sld" value="<?= $sld ?>">
+      <input type="hidden" name="tld" value="<?= $tld ?>">
+
+      <table id="ns-form-list">
+        <?php $i = 1; foreach ($nslist as $ns): ?>
+        <tr>
+          <td>NS<?= $i ?>:</td>
+          <td><input type="text" name="ns[]" value="<?= $ns ?>"></td>
+        </tr>
+        <?php $i++; endforeach; ?>
+      </table>
+      <br>
+      <button type="button" id="add-nameserver">Add Server</button>
+      <button name="submit">Update</button>
+    </form>
+
+    <section id="ns-table">
+      <table>
+        <?php $i = 1; foreach ($nslist as $ns): ?>
+        <tr>
+          <td>NS<?= $i ?>: <?= $ns ?></td>
+        </tr>
+        <?php $i++; endforeach; ?>
+      </table>
+
+      <br>
+      <a href="#" id="add-record-link">Edit Nameservers</a>
+    </section>
     <br>
-
-    <br />
-    <a href="#" id="add-record-link">Update Nameservers</a><br /><br />
     <a href="index.php">Return to Domain List</a>
   </body>
 
   <script type="text/javascript">
-    document.getElementById('add-record-link').addEventListener('click', function() {
-      document.getElementById('add-record-form').style.display = 'block';
+    const nsForm = document.getElementById('add-record-form');
+    const toggleLink = document.getElementById('add-record-link');
+    const staticListTable = document.getElementById('ns-table');
+    const addNSButton = document.getElementById('add-nameserver');
+    const nsFormList = document.getElementById('ns-form-list');
+    let numOfServers = <?= count($nslist) ?>;
+    const maxNSServers = 12;
+
+    toggleLink.addEventListener('click', function() {
+      nsForm.style.display = 'block';
+      staticListTable.style.display = 'none';
+    });
+
+    addNSButton.addEventListener('click', function() {
+      if (numOfServers >= maxNSServers) return; // Only allow 12 servers
+      numOfServers++;
+
+      const newTextInput = document.createElement('tr');
+      newTextInput.innerHTML = '<td>NS'+numOfServers+':</td><td><input type="text" name="ns[]"></td>'
+      nsFormList.appendChild(newTextInput);
     });
   </script>
 </html>
