@@ -12,7 +12,6 @@ if (!is_null($_POST['submit'])) {
 $xml = $enomClient->GetDns($sld, $tld);
 $nslist = $xml->dns;
 ?>
-
 <!DOCTYPE html>
 <html>
   <head>
@@ -24,6 +23,13 @@ $nslist = $xml->dns;
       }
       body { font-family: sans-serif; }
       a, a:link, a:visited, a:hover { color: black; }
+      input[type="text"] {
+        font-size: 16px;
+      }
+
+      input[type="text"]:focus {
+        outline-width: 0;
+      }
     </style>
   </head>
 
@@ -53,7 +59,8 @@ $nslist = $xml->dns;
       <table>
         <?php $i = 1; foreach ($nslist as $ns): ?>
         <tr>
-          <td>NS<?= $i ?>: <?= $ns ?></td>
+          <td>NS<?= $i ?>:</td>
+          <td><?= $ns ?></td>
         </tr>
         <?php $i++; endforeach; ?>
       </table>
@@ -67,18 +74,21 @@ $nslist = $xml->dns;
 
   <script type="text/javascript">
     const nsForm = document.getElementById('add-record-form');
-    const toggleLink = document.getElementById('add-record-link');
     const staticListTable = document.getElementById('ns-table');
-    const addNSButton = document.getElementById('add-nameserver');
-    const nsFormList = document.getElementById('ns-form-list');
-    let numOfServers = <?= count($nslist) ?>;
-    const maxNSServers = 12;
-
+    const toggleLink = document.getElementById('add-record-link');
     toggleLink.addEventListener('click', function() {
       nsForm.style.display = 'block';
       staticListTable.style.display = 'none';
+
+      const focusElement = nsFormList.querySelectorAll('input[type="text"]')[0];
+      focusElement.focus();
+      focusElement.setSelectionRange(0, focusElement.value.length)
     });
 
+    let numOfServers = <?= count($nslist) ?>;
+    const maxNSServers = 12;
+    const nsFormList = document.getElementById('ns-form-list');
+    const addNSButton = document.getElementById('add-nameserver');
     addNSButton.addEventListener('click', function() {
       if (numOfServers >= maxNSServers) return; // Only allow 12 servers
       numOfServers++;
@@ -86,6 +96,9 @@ $nslist = $xml->dns;
       const newTextInput = document.createElement('tr');
       newTextInput.innerHTML = '<td>NS'+numOfServers+':</td><td><input type="text" name="ns[]"></td>'
       nsFormList.appendChild(newTextInput);
+
+      const nsInputs = nsFormList.querySelectorAll('input[type="text"]');
+      nsInputs[nsInputs.length-1].focus();
     });
   </script>
 </html>

@@ -4,7 +4,7 @@ require_once('init.php');
 $tldarray = [com, net, org, mba, biz, cloud, info, mobi, name, us, zone, email, family];
 sort($tldarray);
 ?>
-
+<!DOCTYPE html>
 <html>
   <head>
     <title>Domain Name Manager</title>

@@ -4,6 +4,7 @@ require_once('init.php');
 $xml = $enomClient->GetAllDomains();
 $domainlist = $xml->GetAllDomains->DomainDetail;
 ?>
+<!DOCTYPE html>
 <html>
   <head>
     <title>Domain Name Manager</title>
