@@ -37,6 +37,7 @@
         padding: 4px;
       }
       body { font-family: sans-serif; }
+      a, a:link, a:visited, a:hover { color: black; }
     </style>
   </head>
 
