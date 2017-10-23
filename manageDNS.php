@@ -62,7 +62,7 @@
             <td><input type="text" name="ns5"></td>
           </tr>
         </table>
-
+        <br />
         <input type="hidden" name="sld" value="<?= $sld ?>">
         <input type="hidden" name="tld" value="<?= $tld ?>">
         <input type="submit" name="submit" value="Update">
