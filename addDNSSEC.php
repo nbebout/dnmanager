@@ -61,7 +61,7 @@ $tld = $_GET['tld'];
       <?php endforeach; ?>
     </table>
     <br />
-    <a href="listDomains.php">Return to Domain List</a>
+    <a href="index.php">Return to Domain List</a>
 
  </body>
 </html>

@@ -36,6 +36,6 @@
     </table>
     <br />
     <a href="addDNSSEC.php?sld=<?= $sld ?>&tld=<?= $tld ?>">Add DNSSEC record</a><br />
-    <a href="listDomains.php">Return to Domain List</a>
+    <a href="index.php">Return to Domain List</a>
   </body>
 </html>
