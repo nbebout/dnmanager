@@ -21,7 +21,7 @@
         <th>Algorithm</th>
         <th>Digest Type</th>
         <th>Digest</th>
-        <th>Show DNSSEC Records</th>
+        <th>Delete</th>
       </tr>
 
       <?php foreach ($keylist as $key): ?>
@@ -30,7 +30,7 @@
         <td><?= $key->Algorithm ?></td>
         <td><?= $key->DigestType ?></td>
         <td><?= $key->Digest ?></td>
-        <td><a href="deleteDNSSEC.php?sld=<?= $sld ?>&tld=<?= $tld ?>">Show DNSSEC</a></td>
+        <td><a href="deleteDNSSEC.php?sld=<?= $sld ?>&tld=<?= $tld ?>&keytag=<?= $key->KeyTag ?>&algorithm=<?= $key->Algorithm ?>&digesttype=<?= $key->DigestType ?>&digest=<?= $key->Digest ?>">Delete</a></td>
       </tr>
       <?php endforeach; ?>
     </table>
