@@ -87,8 +87,9 @@
     </table>
     <br>
 
+    <a href="#" id="add-record-link">Add DNSSEC record</a><br />
+    <br />
     <a href="index.php">Return to Domain List</a>
-    <a href="#" id="add-record-link">Add DNSSEC record</a>
   </body>
 
   <script type="text/javascript">
