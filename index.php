@@ -2,7 +2,10 @@
 require_once('init.php');
 
 $xml = $enomClient->GetAllDomains();
+$ncxml = $namecheapClient->GetAllDomains();
 $domainlist = $xml->GetAllDomains->DomainDetail;
+$ncdomainlist = $ncxml->CommandResponse->DomainGetListResult->Domain;
+var_dump($ncdomainlist);
 ?>
 <!DOCTYPE html>
 <html>
@@ -24,6 +27,7 @@ $domainlist = $xml->GetAllDomains->DomainDetail;
     <table>
       <tr>
         <th>Domain Name</th>
+        <th>Registrar</th>
         <th>Expiration Date</th>
         <th>Lock Status</th>
         <th>DNSSEC</th>
@@ -33,10 +37,21 @@ $domainlist = $xml->GetAllDomains->DomainDetail;
       <?php $split = explode('.', $domain->DomainName); ?>
       <tr>
         <td><?= $domain->DomainName ?></td>
+        <td>eNom</td>
         <td><?= $domain->{'expiration-date'} ?></td>
         <td><?= $domain->lockstatus ?></td>
         <td><a href="manageDNSSEC.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>">Edit</a></td>
         <td><a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>">Edit</a></td>
+      </tr>
+      <?php endforeach; ?>
+      <?php foreach ($ncdomainlist as $domain): ?>
+      <tr>
+        <td><?= $domain->attributes()->Name ?></td>
+        <td>NameCheap</td>
+        <td><?= $domain->attributes()->Expires ?></td>
+        <td><?= $domain->attributes()->IsLocked ?></td>
+        <td></td>
+        <td></td>
       </tr>
       <?php endforeach; ?>
   </body>
