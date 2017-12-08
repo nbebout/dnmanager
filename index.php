@@ -39,7 +39,7 @@ $domains = $sorteddomains;
         <th>Domain Name</th>
         <th>Registrar</th>
         <th>Expiration Date</th>
-        <th>Lock Status</th>
+<!--        <th>Lock Status</th> -->
         <th>DNSSEC</th>
         <th>Nameservers</th>
       </tr>
@@ -49,7 +49,7 @@ $domains = $sorteddomains;
         <td><?= $domain[domain] ?></td>
         <td><?= $domain[registrar] ?></td>
         <td><?= strtok($domain[expiry], ' ') ?></td>
-        <td><?= $domain[islocked] ?></td>
+<!--       <td><?= $domain[islocked] ?></td> -->
         <td><a href="manageDNSSEC.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>">Edit</a></td>
         <td><a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain[registrar]); ?>">Edit</a></td>
       </tr>
