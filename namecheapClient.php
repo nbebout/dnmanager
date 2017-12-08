@@ -3,20 +3,20 @@
 class NameCheapClient {
     const RESPONSE_TYPE = 'XML';
 
-    private $ncserver; // Server host name including schema with no trailing slash
-    private $ncusername;
-    private $ncapikey;
+    private $server; // Server host name including schema with no trailing slash
+    private $username;
+    private $password;
 //https://api.namecheap.com/xml.response?ApiUser=NEBEBOUT&ApiKey=90d89006f13f469fa5cf529a10571f1c&UserName=nebebout&Command=namecheap.domains.getList&ClientIp=192.168.1.109
-    private $ncapiEndpoint = "/xml.response"; // API page to call, must begin with a slash
+    private $apiEndpoint = "/xml.response"; // API page to call, must begin with a slash
 
-    public function __construct(string $ncserver, string $ncusername, string $ncapikey) {
-        if (empty($ncserver) || empty($ncusername) || empty($ncapikey)) {
+    public function __construct(string $server, string $username, string $password) {
+        if (empty($server) || empty($username) || empty($password)) {
             throw new Exception('Server, username, and api key required for enom api');
         }
 
-        $this->ncserver = trim($ncserver, '/');
-        $this->ncusername = $ncusername;
-        $this->ncapikey = $ncapikey;
+        $this->server = trim($server, '/');
+        $this->username = $username;
+        $this->password = $password;
     }
 
     // SetApiPath will set the $apiEndpoint variable. This should only be used when testing with a stub server.
@@ -24,17 +24,17 @@ class NameCheapClient {
         if ($path[0] !== '/') {
             $path = '/'.$path;
         }
-        $this->ncapiEndpoint = $path;
+        $this->apiEndpoint = $path;
     }
 
     // baseApiArgs returns an array of query parameters common to all NameCheap API calls.
-    private function baseApiArgs(string $nccommand) : array {
+    private function baseApiArgs(string $command) : array {
         return [
-            'Command' => $nccommand,
+            'Command' => $command,
             //'responsetype' => self::RESPONSE_TYPE,
-            'ApiUser' => $this->ncusername,
-            'UserName' => $this->ncusername,
-            'ApiKey' => $this->ncapikey,
+            'ApiUser' => $this->username,
+            'UserName' => $this->username,
+            'ApiKey' => $this->password,
             'ClientIp' => '71.19.151.18'
         ];
     }
@@ -42,8 +42,8 @@ class NameCheapClient {
     // commonApiArgs takes the baseApiArgs and adds sld and tld to the list of params.
     private function commonApiArgs(string $command, string $sld, string $tld) : array {
         $data = $this->baseApiArgs($command);
-        $data['sld'] = urlencode($sld);
-        $data['tld'] = urlencode($tld);
+        $data['SLD'] = urlencode($sld);
+        $data['TLD'] = urlencode($tld);
         return $data;
     }
 //https://api.namecheap.com/xml.response?ApiUser=NEBEBOUT&ApiKey=90d89006f13f469fa5cf529a10571f1c&UserName=nebebout&Command=namecheap.domains.getList&ClientIp=192.168.1.109
@@ -51,7 +51,7 @@ class NameCheapClient {
     public function GetAllDomains() : SimpleXMLElement {
         $queryData = $this->baseApiArgs('namecheap.domains.getList');
         $qs = http_build_query($queryData);
-        $url = "{$this->ncserver}{$this->ncapiEndpoint}?$qs";
+        $url = "{$this->server}{$this->apiEndpoint}?$qs";
         return simplexml_load_file($url);
     }
 
@@ -88,7 +88,7 @@ class NameCheapClient {
 
     // GetDns returns information about the nameserves for the given domain.
     public function GetDns(string $sld, string $tld) : SimpleXMLElement {
-        $queryData = $this->commonApiArgs('GetDns', $sld, $tld);
+        $queryData = $this->commonApiArgs('namecheap.domains.dns.getList', $sld, $tld);
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
         return simplexml_load_file($url);
@@ -97,17 +97,18 @@ class NameCheapClient {
     // ModifyNS updates the nameservers for a given domain. $nameservers should be an array of strings with the nameserver DNS entries.
     // NameCheap's API only allows up to 12 nameserver records. If this function is given more than 12, the rest are ignored.
     public function ModifyNS(string $sld, string $tld, array $nameservers) : SimpleXMLElement {
-        $queryData = $this->commonApiArgs('ModifyNS', $sld, $tld);
+        $queryData = $this->commonApiArgs('namecheap.domains.dns.setCustom', $sld, $tld);
 
-        $i = 1; // The count is out here because we don't know if all elements are valid
+        $nslist = ''; // The count is out here because we don't know if all elements are valid
+        $i = 1;
         foreach ($nameservers as $ns) {
             if ($i >= 13) break; // Enforce max of 12 servers. Ignore 13 and beyond if given.
             if (trim($ns) === '') continue;
-
-            $queryData['ns'.$i] = urlencode($ns);
+            if ($i != 1) { $nslist .= ','; }
+            $nslist .= $ns;
             $i++;
         }
-
+	$queryData['Nameservers'] = $nslist;
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
         return simplexml_load_file($url);

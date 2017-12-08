@@ -4,13 +4,25 @@ require_once('init.php');
 // $_REQUEST contains $_POST, $_GET, and $_COOKIE
 $sld = urlencode($_REQUEST['sld']);
 $tld = urlencode($_REQUEST['tld']);
+$registrar = urlencode($_REQUEST['registrar']);
 
-if (!is_null($_POST['submit'])) {
+if (!is_null($_POST['submit']) && $registrar == 'enom') {
   $enomClient->ModifyNS($sld, $tld, $_POST['ns']);
 }
 
+if (!is_null($_POST['submit']) && $registrar == 'namecheap') {
+  $namecheapClient->ModifyNS($sld, $tld, $_POST['ns']);
+}
+
+if ($registrar == 'enom') {
 $xml = $enomClient->GetDns($sld, $tld);
 $nslist = $xml->dns;
+}
+
+if ($registrar == 'namecheap') {
+$xml = $namecheapClient->GetDns($sld, $tld);
+$nslist = $xml->CommandResponse->DomainDNSGetListResult->Nameserver;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -41,6 +53,7 @@ $nslist = $xml->dns;
     <form action="manageDNS.php" method="POST" style="display: none;" id="add-record-form">
       <input type="hidden" name="sld" value="<?= $sld ?>">
       <input type="hidden" name="tld" value="<?= $tld ?>">
+      <input type="hidden" name="registrar" value="<?= $registrar ?>">
 
       <table id="ns-form-list">
         <?php $i = 1; foreach ($nslist as $ns): ?>

@@ -5,7 +5,17 @@ $xml = $enomClient->GetAllDomains();
 $ncxml = $namecheapClient->GetAllDomains();
 $domainlist = $xml->GetAllDomains->DomainDetail;
 $ncdomainlist = $ncxml->CommandResponse->DomainGetListResult->Domain;
-var_dump($ncdomainlist);
+$domains = array();
+foreach ($domainlist as $domain):
+  $domains[] = array('domain' => $domain->DomainName, 'expiry' => $domain->{'expiration-date'}, 'islocked' => $domain->lockstatus, 'registrar' => 'eNom');
+endforeach;
+foreach ($ncdomainlist as $domain):
+  $domains[] = array('domain' => $domain->attributes()->Name, 'expiry' => $domain->attributes()->Expires, 'islocked' => $domain->attributes()->IsLocked, 'registrar' => 'NameCheap');
+endforeach;
+
+$sorteddomains = array_msort($domains, array('domain'=>SORT_ASC));
+$domains = $sorteddomains;
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -33,25 +43,15 @@ var_dump($ncdomainlist);
         <th>DNSSEC</th>
         <th>Nameservers</th>
       </tr>
-      <?php foreach ($domainlist as $domain): ?>
-      <?php $split = explode('.', $domain->DomainName); ?>
+      <?php foreach ($domains as $domain): ?>
+      <?php $split = explode('.', $domain[domain]); ?>
       <tr>
-        <td><?= $domain->DomainName ?></td>
-        <td>eNom</td>
-        <td><?= $domain->{'expiration-date'} ?></td>
-        <td><?= $domain->lockstatus ?></td>
+        <td><?= $domain[domain] ?></td>
+        <td><?= $domain[registrar] ?></td>
+        <td><?= strtok($domain[expiry], ' ') ?></td>
+        <td><?= $domain[islocked] ?></td>
         <td><a href="manageDNSSEC.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>">Edit</a></td>
-        <td><a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>">Edit</a></td>
-      </tr>
-      <?php endforeach; ?>
-      <?php foreach ($ncdomainlist as $domain): ?>
-      <tr>
-        <td><?= $domain->attributes()->Name ?></td>
-        <td>NameCheap</td>
-        <td><?= $domain->attributes()->Expires ?></td>
-        <td><?= $domain->attributes()->IsLocked ?></td>
-        <td></td>
-        <td></td>
+        <td><a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain[registrar]); ?>">Edit</a></td>
       </tr>
       <?php endforeach; ?>
   </body>
