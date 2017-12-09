@@ -1,37 +1,30 @@
 <?php
+$config = [];
 require_once('config.php');
-require_once('enomClient.php');
-require_once('namecheapClient.php');
+require_once('classes/init.php');
 
-$enomClient = new EnomClient($server, $username, $password);
-$namecheapClient = new NameCheapClient($ncserver, $ncusername, $ncpassword);
+$clients = [];
 
-if (defined('TESTING') && isset($apiPath)) {
-    $enomClient->SetApiPath($apiPath);
+// Setup enom client
+if (!empty($config['enom']['server'])) {
+    $enomClient = new EnomClient($config['enom']['server'], $config['enom']['username'], $config['enom']['password']);
+    if (defined('TESTING') && isset($config['enom']['api_path'])) {
+        $enomClient->SetApiPath($config['enom']['api_path']);
+    }
+    $clients['enom'] = $enomClient;
 }
 
-function array_msort($array, $cols)
-{
-    $colarr = array();
-    foreach ($cols as $col => $order) {
-        $colarr[$col] = array();
-        foreach ($array as $k => $row) { $colarr[$col]['_'.$k] = strtolower($row[$col]); }
+// Setup Namecheap client
+if (!empty($config['namecheap']['server'])) {
+    $namecheapClient = new NameCheapClient($config['namecheap']['server'], $config['namecheap']['username'], $config['namecheap']['apikey']);
+    if (defined('TESTING') && isset($config['namecheap']['api_path'])) {
+        $namecheapClient->SetApiPath($config['namecheap']['api_path']);
     }
-    $eval = 'array_multisort(';
-    foreach ($cols as $col => $order) {
-        $eval .= '$colarr[\''.$col.'\'],'.$order.',';
-    }
-    $eval = substr($eval,0,-1).');';
-    eval($eval);
-    $ret = array();
-    foreach ($colarr as $col => $arr) {
-        foreach ($arr as $k => $v) {
-            $k = substr($k,1);
-            if (!isset($ret[$k])) $ret[$k] = $array[$k];
-            $ret[$k][$col] = $array[$k][$col];
-        }
-    }
-    return $ret;
-
+    $clients['namecheap'] = $namecheapClient;
 }
 
+function sortDomains(array &$domains) {
+    usort($domains, function($a, $b): int {
+        return strcmp($a->name, $b->name);
+    });
+}

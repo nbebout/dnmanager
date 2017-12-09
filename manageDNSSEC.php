@@ -2,8 +2,9 @@
 require_once('init.php');
 
 // $_REQUEST contains $_POST, $_GET, and $_COOKIE
-$sld = urlencode($_REQUEST['sld']);
-$tld = urlencode($_REQUEST['tld']);
+$sld = $_REQUEST['sld'];
+$tld = $_REQUEST['tld'];
+$registrar = $_REQUEST['registrar'];
 
 if ($_POST['submit']) {
   // URL for API request
@@ -12,12 +13,16 @@ if ($_POST['submit']) {
   $digesttype = $_POST['digesttype'];
   $digest = $_POST['digest'];
 
-  $enomClient->AddDnsSec($sld, $tld, $keytag, intval($algorithm), $digesttype, $digest);
+  if (isset($clients[$registrar])) {
+    $keylist = $clients[$registrar]->AddDnsSec($sld, $tld, $keytag, intval($algorithm), $digesttype, $digest);
+  }
 }
 
-// Load the API results into a SimpleXML object
-$xml = $enomClient->GetDnsSec($sld, $tld);
-$keylist = $xml->DnsSecData->KeyData;
+
+$keylist = [];
+if (isset($clients[$registrar])) {
+  $keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -61,6 +66,7 @@ $keylist = $xml->DnsSecData->KeyData;
         <br />
         <input type="hidden" name="sld" value="<?= $sld ?>">
         <input type="hidden" name="tld" value="<?= $tld ?>">
+        <input type="hidden" name="registrar" value="<?= $registrar ?>">
         <input type="submit" name="submit" value="Add">
       </form>
     </div>
@@ -77,11 +83,11 @@ $keylist = $xml->DnsSecData->KeyData;
 
       <?php foreach ($keylist as $key): ?>
       <tr>
-        <td><?= $key->KeyTag ?></td>
-        <td><?= $key->Algorithm ?></td>
-        <td><?= $key->DigestType ?></td>
-        <td><?= $key->Digest ?></td>
-        <td><a href="deleteDNSSEC.php?sld=<?= $sld ?>&tld=<?= $tld ?>&keytag=<?= $key->KeyTag ?>&algorithm=<?= $key->Algorithm ?>&digesttype=<?= $key->DigestType ?>&digest=<?= $key->Digest ?>">Delete</a></td>
+        <td><?= $key->keyTag ?></td>
+        <td><?= $key->algorithm ?></td>
+        <td><?= $key->digestType ?></td>
+        <td><?= $key->digest ?></td>
+        <td><a href="deleteDNSSEC.php?sld=<?= urlencode($sld) ?>&tld=<?= urlencode($tld) ?>&keytag=<?= urlencode($key->keyTag) ?>&algorithm=<?= urlencode($key->algorithm) ?>&digesttype=<?= urlencode($key->digestType) ?>&digest=<?= urlencode($key->digest) ?>&registrar=<?= urlencode($registrar) ?>">Delete</a></td>
       </tr>
       <?php endforeach; ?>
     </table>
