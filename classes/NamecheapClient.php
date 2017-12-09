@@ -1,6 +1,6 @@
 <?php
 
-class NameCheapClient {
+class NameCheapClient implements RegistrarClient {
     private $server; // Server host name including schema with no trailing slash
     private $username;
     private $apiKey;

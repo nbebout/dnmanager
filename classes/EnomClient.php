@@ -1,6 +1,6 @@
 <?php
 
-class EnomClient {
+class EnomClient implements RegistrarClient {
     const RESPONSE_TYPE = 'XML';
 
     private $server; // Server host name including schema with no trailing slash
@@ -103,12 +103,12 @@ class EnomClient {
     }
 
     // AddDnsSec will add a new DNS Sec record to the given domain.
-    public function AddDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : SimpleXMLElement {
+    public function AddDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : bool {
         return $this->commonDnsSec('AddDnsSec', $sld, $tld, $keytag, $alg, $digesttype, $digest)->RRPCode == '200';
     }
 
     // DeleteDnsSec will delete the give DNS Sec record for the given domain.
-    public function DeleteDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : SimpleXMLElement {
+    public function DeleteDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : bool {
         return $this->commonDnsSec('DeleteDnsSec', $sld, $tld, $keytag, $alg, $digesttype, $digest)->RRPCode == '200';
     }
 
