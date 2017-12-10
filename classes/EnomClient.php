@@ -66,7 +66,7 @@ class EnomClient implements RegistrarClient {
     }
 
     // will return string true if domain is locked, false if domain is unlocked
-    private function DomainLocked(string $domain) : bool {
+    public function DomainLocked(string $domain) : bool {
             $split = explode('.', $domain);
             $queryData2 = $this->commonApiArgs('GetRegLock', $split[0], $split[1]);
             $qs2 = http_build_query($queryData2);
