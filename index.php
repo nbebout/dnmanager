@@ -41,7 +41,7 @@ sortDomains($domains);
         <td><?= $domain->name ?></td>
         <td><?= $domain->registrar ?></td>
         <td><?= explode(' ', $domain->expires, 2)[0] ?></td>
-        <td><?= $domain->locked ? 'Yes' : 'No' ?></td>
+        <td><a href="toggleLockStatus.php?domain=<?= $domain->name ?>&registrar=<?= strtolower($domain->registrar); ?>"><?= $domain->locked ? 'Yes' : 'No' ?></a></td>
         <td>
           <?php if ($clients[strtolower($domain->registrar)]->SupportsDnsSec()): ?>
             <a href="manageDNSSEC.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain->registrar); ?>">Edit</a>
