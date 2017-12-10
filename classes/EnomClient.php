@@ -57,7 +57,7 @@ class EnomClient implements RegistrarClient {
             $d = new Domain();
             $d->registrar = 'eNom';
             $d->name = $domain->DomainName;
-            $d->locked = ($domain->Locked == 'Locked');
+            $d->locked = ($domain->lockstatus == 'Locked');
             $d->expires = $domain->{'expiration-date'};
             $d->autorenew = ($domain->AutoRenew == 'Yes');
             $domainlist []= $d;
@@ -76,10 +76,10 @@ class EnomClient implements RegistrarClient {
         $keylist = [];
         foreach ($keylistXML as $key) {
             $k = new DNSSecKey();
-            $k->keyTag = $keylistXML->KeyTag;
-            $k->algorithm = $keylistXML->Algorithm;
-            $k->digestType = $keylistXML->DigestType;
-            $k->digest = $keylistXML->Digest;
+            $k->keyTag = $key->KeyTag;
+            $k->algorithm = $key->Algorithm;
+            $k->digestType = $key->DigestType;
+            $k->digest = $key->Digest;
             $keylist []= $k;
         }
         return $keylist;
