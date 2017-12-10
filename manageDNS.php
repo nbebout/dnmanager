@@ -6,11 +6,11 @@ $sld = $_REQUEST['sld'];
 $tld = $_REQUEST['tld'];
 $registrar = $_REQUEST['registrar'];
 
-if (!is_null($_POST['submit'])) {
+if (isset($_POST['submit'])) {
   if ($registrar == 'enom') {
-    $enomClient->ModifyNS($sld, $tld, $_POST['ns']);
+    $clients['enom']->ModifyNS($sld, $tld, $_POST['ns']);
   } else if ($registrar == 'namecheap') {
-    $namecheapClient->ModifyNS($sld, $tld, $_POST['ns']);
+    $clients['namecheap']->ModifyNS($sld, $tld, $_POST['ns']);
   }
 }
 

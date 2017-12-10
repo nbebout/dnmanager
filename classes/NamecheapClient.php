@@ -102,8 +102,8 @@ class NameCheapClient implements RegistrarClient {
     public function ModifyNS(string $sld, string $tld, array $nameservers) : bool {
         $queryData = $this->commonApiArgs('namecheap.domains.dns.setCustom', $sld, $tld);
         // Trim all whitespace and remove empty entries
-        $nameservers = array_map(function($item) { trim($item); }, $nameservers);
-        $nameservers = array_filter($nameservers, function($item) { $item != ''; });
+        $nameservers = array_map(function($item) { return trim($item); }, $nameservers);
+        $nameservers = array_filter($nameservers, function($item) { return $item != ''; });
         // Enforce max number of 12 nameservers
         if (count($nameservers) > 12) {
             array_splice($nameservers, 12);

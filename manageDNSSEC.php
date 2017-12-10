@@ -6,7 +6,7 @@ $sld = $_REQUEST['sld'];
 $tld = $_REQUEST['tld'];
 $registrar = $_REQUEST['registrar'];
 
-if ($_POST['submit']) {
+if (isset($_POST['submit'])) {
   // URL for API request
   $keytag = $_POST['keytag'];
   $algorithm = $_POST['algorithm'];
