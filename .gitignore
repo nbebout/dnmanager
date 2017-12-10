@@ -1,1 +1,4 @@
 config.php
+.htaccess
+.htpasswd
+test.php
