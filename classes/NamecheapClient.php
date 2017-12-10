@@ -75,7 +75,7 @@ class NameCheapClient implements RegistrarClient {
             $qs2 = http_build_query($queryData2);
             $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
             $xml2 = simplexml_load_file($url2);
-            return (string)$xml2->CommandResponse->DomainGetRegistrarLockResult->attributes()->RegistrarLockStatus === 'true'? true: false;
+            return (string)($xml2->CommandResponse->DomainGetRegistrarLockResult->attributes()->RegistrarLockStatus) === 'true';
     }
 
     public function SupportsDnsSec() : bool {
