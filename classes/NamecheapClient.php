@@ -126,6 +126,15 @@ class NameCheapClient implements RegistrarClient {
 
     // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
     public function GetResellerPrice(string $type, string $tld) : float {
-        return 0.0;
+        $queryData = $this->baseApiArgs('namecheap.users.getPricing');
+        $queryData['ProductName'] = urlencode($tld);
+        $queryData['ProductType'] = 'DOMAIN';
+        $queryData['ActionName'] = urlencode($type);
+
+        $qs = http_build_query($queryData);
+        $url = "{$this->server}{$this->apiEndpoint}?$qs";
+        if ($tld == 'name') { return 999.99; }
+        return (float)(simplexml_load_file($url)->CommandResponse->UserGetPricingResult->ProductType->ProductCategory->Product->Price->attributes()->Price);
+    //    return (float)(simplexml_load_file($url)->productprice->price);
     }
 }
