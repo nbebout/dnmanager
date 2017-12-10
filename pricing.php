@@ -1,9 +1,7 @@
 <?php
 require_once('init.php');
 
-#$tldarray = [com, net, org, mba, biz, cloud, info, mobi, us, zone, email, family];
-$tldarray = [biz, cloud, co, com, email, family, info, mba, me, mobi, name, net, online, org, site, tech, us, website, zone];
-//$tldarray = [com];
+$tldarray = ['biz', 'cloud', 'co', 'com', 'email', 'family', 'info', 'mba', 'me', 'mobi', 'name', 'net', 'online', 'org', 'site', 'tech', 'us', 'website', 'zone'];
 sort($tldarray);
 ?>
 <!DOCTYPE html>
