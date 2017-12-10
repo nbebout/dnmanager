@@ -57,11 +57,17 @@ class NameCheapClient implements RegistrarClient {
         $domainlist = [];
         foreach($domainlistXML as $domain) {
             $attributes = $domain->attributes();
+            $queryData2 = $this->baseApiArgs('namecheap.domains.getRegistrarLock');
+            $queryData2['DomainName'] = urlencode($attributes->Name);
+            $qs2 = http_build_query($queryData2);
+            $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
+            $xml2 = simplexml_load_file($url2);
+            $domainlocked = $xml2->CommandResponse->DomainGetRegistrarLockResult->attributes()->RegistrarLockStatus;
 
             $d = new Domain();
             $d->registrar = 'Namecheap';
             $d->name = $attributes->Name;
-            $d->locked = ($attributes->IsLocked == 'true');
+            $d->locked = ($domainlocked == 'true');
             $d->expires = $attributes->Expires;
             $d->autorenew = ($attributes->AutoRenew == 'true');
             $domainlist []= $d;
