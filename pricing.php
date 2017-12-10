@@ -8,10 +8,18 @@ sort($tldarray);
 <html>
   <head>
     <title>Domain Name Manager</title>
+
+    <style>
+      table, th, td {
+        border: 1px solid black;
+        padding: 4px;
+      }
+      body { font-family: sans-serif; }
+    </style>
   </head>
 
   <body>
-    <h1>Domain Name Manager</h1>
+    <h1>Domain Pricing - eNom</h1>
     <table>
       <tr>
         <th>TLD</th>
@@ -22,9 +30,9 @@ sort($tldarray);
       <?php foreach ($tldarray as $tld): ?>
         <tr>
           <td><?= $tld; ?></td>
-          <td>$<?= $enomClient->GetResellerPrice('new', $tld)->productprice->price; ?></td>
-          <td>$<?= $enomClient->GetResellerPrice('renew', $tld)->productprice->price; ?></td>
-          <td>$<?= $enomClient->GetResellerPrice('transfer', $tld)->productprice->price; ?></td>
+          <td>$<?= $clients['enom']->GetResellerPrice('new', $tld); ?></td>
+          <td>$<?= $clients['enom']->GetResellerPrice('renew', $tld); ?></td>
+          <td>$<?= $clients['enom']->GetResellerPrice('transfer', $tld); ?></td>
         </tr>
       <?php endforeach; ?>
   </body>

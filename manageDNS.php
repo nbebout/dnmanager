@@ -2,26 +2,21 @@
 require_once('init.php');
 
 // $_REQUEST contains $_POST, $_GET, and $_COOKIE
-$sld = urlencode($_REQUEST['sld']);
-$tld = urlencode($_REQUEST['tld']);
-$registrar = urlencode($_REQUEST['registrar']);
+$sld = $_REQUEST['sld'];
+$tld = $_REQUEST['tld'];
+$registrar = $_REQUEST['registrar'];
 
-if (!is_null($_POST['submit']) && $registrar == 'enom') {
-  $enomClient->ModifyNS($sld, $tld, $_POST['ns']);
+if (isset($_POST['submit'])) {
+  if ($registrar == 'enom') {
+    $clients['enom']->ModifyNS($sld, $tld, $_POST['ns']);
+  } else if ($registrar == 'namecheap') {
+    $clients['namecheap']->ModifyNS($sld, $tld, $_POST['ns']);
+  }
 }
 
-if (!is_null($_POST['submit']) && $registrar == 'namecheap') {
-  $namecheapClient->ModifyNS($sld, $tld, $_POST['ns']);
-}
-
-if ($registrar == 'enom') {
-$xml = $enomClient->GetDns($sld, $tld);
-$nslist = $xml->dns;
-}
-
-if ($registrar == 'namecheap') {
-$xml = $namecheapClient->GetDns($sld, $tld);
-$nslist = $xml->CommandResponse->DomainDNSGetListResult->Nameserver;
+$nslist = [];
+if (isset($clients[$registrar])) {
+  $nslist = $clients[$registrar]->GetDns($sld, $tld);
 }
 ?>
 <!DOCTYPE html>

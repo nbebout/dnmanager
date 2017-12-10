@@ -1,21 +1,13 @@
 <?php
 require_once('init.php');
 
-$xml = $enomClient->GetAllDomains();
-$ncxml = $namecheapClient->GetAllDomains();
-$domainlist = $xml->GetAllDomains->DomainDetail;
-$ncdomainlist = $ncxml->CommandResponse->DomainGetListResult->Domain;
-$domains = array();
-foreach ($domainlist as $domain):
-  $domains[] = array('domain' => $domain->DomainName, 'expiry' => $domain->{'expiration-date'}, 'islocked' => $domain->lockstatus, 'registrar' => 'eNom');
-endforeach;
-foreach ($ncdomainlist as $domain):
-  $domains[] = array('domain' => $domain->attributes()->Name, 'expiry' => $domain->attributes()->Expires, 'islocked' => $domain->attributes()->IsLocked, 'registrar' => 'NameCheap');
-endforeach;
+$domains = [];
+foreach ($clients as $client) {
+  $clientDomains = $client->GetAllDomains();
+  $domains = array_merge($domains, $clientDomains);
+}
 
-$sorteddomains = array_msort($domains, array('domain'=>SORT_ASC));
-$domains = $sorteddomains;
-
+sortDomains($domains);
 ?>
 <!DOCTYPE html>
 <html>
@@ -39,19 +31,23 @@ $domains = $sorteddomains;
         <th>Domain Name</th>
         <th>Registrar</th>
         <th>Expiration Date</th>
-<!--        <th>Lock Status</th> -->
+        <th>Locked</th>
         <th>DNSSEC</th>
         <th>Nameservers</th>
       </tr>
       <?php foreach ($domains as $domain): ?>
-      <?php $split = explode('.', $domain[domain]); ?>
+      <?php $split = explode('.', $domain->name); ?>
       <tr>
-        <td><?= $domain[domain] ?></td>
-        <td><?= $domain[registrar] ?></td>
-        <td><?= strtok($domain[expiry], ' ') ?></td>
-<!--       <td><?= $domain[islocked] ?></td> -->
-        <td><a href="manageDNSSEC.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>">Edit</a></td>
-        <td><a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain[registrar]); ?>">Edit</a></td>
+        <td><?= $domain->name ?></td>
+        <td><?= $domain->registrar ?></td>
+        <td><?= explode(' ', $domain->expires, 2)[0] ?></td>
+        <td><?= $domain->locked ? 'Yes' : 'No' ?></td>
+        <td>
+          <?php if ($clients[strtolower($domain->registrar)]->SupportsDnsSec()): ?>
+            <a href="manageDNSSEC.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain->registrar); ?>">Edit</a>
+          <?php endif; ?>
+        </td>
+        <td><a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain->registrar); ?>">Edit</a></td>
       </tr>
       <?php endforeach; ?>
   </body>
