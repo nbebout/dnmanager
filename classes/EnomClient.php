@@ -75,6 +75,17 @@ class EnomClient implements RegistrarClient {
             return (string)($xml2->{'reg-lock'}) === '1';
     }
 
+    // Will toggle the current locked status for the given domain
+    public function ToggleLocked(string $domain) : void {
+            $split = explode('.', $domain);
+            $queryData = $this->commonApiArgs('SetRegLock', $split[0], $split[1]);
+            $queryData['UnlockRegistrar'] = $this->DomainLocked($domain);
+            $qs = http_build_query($queryData);
+            $url = "{$this->server}{$this->apiEndpoint}?$qs";
+            $xml = simplexml_load_file($url);
+            return;
+    }
+
     // GetDnsSec returns DNS Sec information about the given domain.
     public function GetDnsSec(string $sld, string $tld) : array {
         $queryData = $this->commonApiArgs('GetDnsSec', $sld, $tld);
