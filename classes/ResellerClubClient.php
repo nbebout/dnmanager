@@ -114,16 +114,24 @@ class ResellerClubClient implements RegistrarClient {
 
     // Will toggle the current locked status for the given domain
     public function ToggleLocked(string $domain) : bool {
-            if ($this->DomainLocked($domain)) { $command = 'enable-theft-protection'; }
-            elseif (!$this->DomainLocked($domain)) { $command = 'disable-theft-protection'; }
+            if ($this->DomainLocked($domain)) { $command = 'disable-theft-protection'; }
+            elseif (!$this->DomainLocked($domain)) { $command = 'enable-theft-protection'; }
             $queryData = $this->baseApiArgs();
             $queryData['order-id'] = $this->GetOrderID($domain);
             $qs = http_build_query($queryData);
             $url = "{$this->server}{$this->apiEndpoint}$command.xml?$qs";
- var_dump($url);
-            $xml = simplexml_load_file($url);
-            var_dump($xml);
-            //return simplexml_load_file($url)->RRPCode == '200';
+            $curl = curl_init($url);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($curl, CURLOPT_POST, true);
+            curl_setopt($curl, CURLOPT_POSTFIELDS, []);
+            $curl_response = curl_exec($curl);
+            $xml = simplexml_load_string($curl_response);
+            foreach ($xml->entry as $entry) {
+              if ($entry->string[0] == 'actionstatus') {
+                if ((string)$entry->string[1] == 'Success') { return true; }
+              else { return false; }
+              }
+            }
     }
 
     // GetDnsSec returns DNS Sec information about the given domain.
@@ -138,7 +146,7 @@ class ResellerClubClient implements RegistrarClient {
         return false;
     }
     public function SupportsToggleLocked() : bool {
-        return false;
+        return true;
     }
 
     // commonDnsSec calls the API using params and paths that are common between the DNS SEC endpoints.
