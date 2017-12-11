@@ -1,9 +1,7 @@
 <?php
 require_once('init.php');
 
-$tldarray = ['biz', 'cloud', 'co', 'com', 'email', 'family', 'info', 'mba', 'me', 'mobi', 'name', 'net', 'online', 'org', 'site', 'tech', 'us', 'website', 'zone'];
-//$tldarray = ['com'];
-sort($tldarray);
+sort($config['pricingTLDs']);
 ?>
 <!DOCTYPE html>
 <html>
@@ -32,7 +30,7 @@ sort($tldarray);
         <th>NameCheap Transfer</th>
       </tr>
       <?php setlocale(LC_MONETARY, 'en_US.UTF-8'); 
-        foreach ($tldarray as $tld):
+        foreach ($config['pricingTLDs'] as $tld):
           $enomPrices = $clients['enom']->GetResellerPrice($tld);
           $namecheapPrices = $clients['namecheap']->GetResellerPrice($tld); 
       ?>
