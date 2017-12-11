@@ -136,17 +136,34 @@ class NameCheapClient implements RegistrarClient {
         return simplexml_load_file($url)->Errors->count == 0;
     }
 
+    // pricingType takes a string identifier and returns Namecheap's string parameter for the type of reseller product
+    private function pricingType(string $type) : string {
+        switch($type) {
+            case 'new':
+                return 'REGISTER';
+            case 'renew':
+                return 'RENEW';
+            case 'transfer':
+                return 'TRANSFER';
+        }
+    }
+
     // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
-    public function GetResellerPrice(string $type, string $tld) : float {
+    public function GetResellerPrice(string $tld) : array {
         $queryData = $this->baseApiArgs('namecheap.users.getPricing');
         $queryData['ProductName'] = urlencode($tld);
         $queryData['ProductType'] = 'DOMAIN';
-        $queryData['ActionName'] = urlencode($type);
 
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        if ($tld == 'name') { return 999.99; }
-        return (float)(simplexml_load_file($url)->CommandResponse->UserGetPricingResult->ProductType->ProductCategory->Product->Price->attributes()->Price);
-    //    return (float)(simplexml_load_file($url)->productprice->price);
+        if ($tld == 'name') { $prices['new'] = 999.99; $prices['renew'] = 999.99; $prices['transfer'] = 999.99; return $prices; }
+        $resultxml = simplexml_load_file($url)->CommandResponse->UserGetPricingResult->ProductType;
+
+        foreach ($resultxml->ProductCategory as $productCategory) :
+          if ($productCategory->attributes()['Name'] == 'register') { $prices['new'] = (float)$productCategory->Product->Price->attributes()->Price; }
+          if ($productCategory->attributes()['Name'] == 'renew') { $prices['renew'] = (float)$productCategory->Product->Price->attributes()->Price; }
+          if ($productCategory->attributes()['Name'] == 'transfer') { $prices['transfer'] = (float)$productCategory->Product->Price->attributes()->Price; }
+        endforeach;
+        return $prices;
     }
 }

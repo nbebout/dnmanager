@@ -160,7 +160,7 @@ class EnomClient implements RegistrarClient {
     }
 
     // resellterTypeToInt takes a string identifier and returns enom's int parameter for the type of reseller product
-    private function resellerTypeToInt(string $type) : int {
+    private function pricingType(string $type) : string {
         switch($type) {
             case 'new':
                 return 10;
@@ -172,13 +172,25 @@ class EnomClient implements RegistrarClient {
     }
 
     // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
-    public function GetResellerPrice(string $type, string $tld) : float {
+    public function GetResellerPrice(string $tld) : array {
         $queryData = $this->baseApiArgs('PE_GetResellerPrice');
         $queryData['tld'] = urlencode($tld);
-        $queryData['ProductType'] = $this->resellerTypeToInt($type);
 
+        $queryData['ProductType'] = $this->pricingType('new');
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return (float)(simplexml_load_file($url)->productprice->price);
+        $prices['new'] = (float)(simplexml_load_file($url)->productprice->price);
+
+        $queryData['ProductType'] = $this->pricingType('renew');
+        $qs = http_build_query($queryData);
+        $url = "{$this->server}{$this->apiEndpoint}?$qs";
+        $prices['renew'] = (float)(simplexml_load_file($url)->productprice->price);
+
+        $queryData['ProductType'] = $this->pricingType('transfer');
+        $qs = http_build_query($queryData);
+        $url = "{$this->server}{$this->apiEndpoint}?$qs";
+        $prices['transfer'] = (float)(simplexml_load_file($url)->productprice->price);
+ 
+        return $prices;
     }
 }

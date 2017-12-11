@@ -2,6 +2,7 @@
 require_once('init.php');
 
 $tldarray = ['biz', 'cloud', 'co', 'com', 'email', 'family', 'info', 'mba', 'me', 'mobi', 'name', 'net', 'online', 'org', 'site', 'tech', 'us', 'website', 'zone'];
+//$tldarray = ['com'];
 sort($tldarray);
 ?>
 <!DOCTYPE html>
@@ -30,15 +31,19 @@ sort($tldarray);
         <th>NameCheap Renew</th>
         <th>NameCheap Transfer</th>
       </tr>
-      <?php setlocale(LC_MONETARY, 'en_US.UTF-8'); foreach ($tldarray as $tld): ?>
+      <?php setlocale(LC_MONETARY, 'en_US.UTF-8'); 
+        foreach ($tldarray as $tld):
+          $enomPrices = $clients['enom']->GetResellerPrice($tld);
+          $namecheapPrices = $clients['namecheap']->GetResellerPrice($tld); 
+      ?>
         <tr>
           <td><?= $tld; ?></td>
-          <td><?= money_format('%.2n', $clients['enom']->GetResellerPrice('new', $tld)); ?></td>
-          <td><?= money_format('%.2n', $clients['enom']->GetResellerPrice('renew', $tld)); ?></td>
-          <td><?= money_format('%.2n', $clients['enom']->GetResellerPrice('transfer', $tld)); ?></td>
-          <td><?= money_format('%.2n', $clients['namecheap']->GetResellerPrice('REGISTER', $tld)); ?></td>
-          <td><?= money_format('%.2n', $clients['namecheap']->GetResellerPrice('RENEW', $tld)); ?></td>
-          <td><?= money_format('%.2n', $clients['namecheap']->GetResellerPrice('TRANSFER', $tld)); ?></td>
+          <td><?= money_format('%.2n', $enomPrices['new']); ?></td>
+          <td><?= money_format('%.2n', $enomPrices['renew']); ?></td>
+          <td><?= money_format('%.2n', $enomPrices['transfer']); ?></td>
+          <td><?= money_format('%.2n', $namecheapPrices['new']); ?></td>
+          <td><?= money_format('%.2n', $namecheapPrices['renew']); ?></td>
+          <td><?= money_format('%.2n', $namecheapPrices['transfer']); ?></td>
         </tr>
       <?php endforeach; ?>
   </body>
