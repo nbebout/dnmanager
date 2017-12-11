@@ -160,7 +160,7 @@ class EnomClient implements RegistrarClient {
     }
 
     // resellterTypeToInt takes a string identifier and returns enom's int parameter for the type of reseller product
-    private function pricingType(string $type) : string {
+    private function pricingType(string $type) : int {
         switch($type) {
             case 'new':
                 return 10;
