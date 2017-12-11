@@ -128,22 +128,7 @@ class ResellerClubClient implements RegistrarClient {
 
     // GetDnsSec returns DNS Sec information about the given domain.
     public function GetDnsSec(string $sld, string $tld) : array {
-        $queryData = $this->commonApiArgs('GetDnsSec', $sld, $tld);
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $xml = simplexml_load_file($url);
-        $keylistXML = $xml->DnsSecData->KeyData;
-
-        $keylist = [];
-        foreach ($keylistXML as $key) {
-            $k = new DNSSecKey();
-            $k->keyTag = $key->KeyTag;
-            $k->algorithm = $key->Algorithm;
-            $k->digestType = $key->DigestType;
-            $k->digest = $key->Digest;
-            $keylist []= $k;
-        }
-        return $keylist;
+        return [];
     }
 
     public function SupportsDnsSec() : bool {
@@ -171,73 +156,32 @@ class ResellerClubClient implements RegistrarClient {
 
     // AddDnsSec will add a new DNS Sec record to the given domain.
     public function AddDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : bool {
-        return $this->commonDnsSec('AddDnsSec', $sld, $tld, $keytag, $alg, $digesttype, $digest)->RRPCode == '200';
+        return false;
     }
 
     // DeleteDnsSec will delete the give DNS Sec record for the given domain.
     public function DeleteDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : bool {
-        return $this->commonDnsSec('DeleteDnsSec', $sld, $tld, $keytag, $alg, $digesttype, $digest)->RRPCode == '200';
+        return false;
     }
 
     // GetDns returns information about the nameserves for the given domain.
     public function GetDns(string $sld, string $tld) : array {
-        $queryData = $this->commonApiArgs('GetDns', $sld, $tld);
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return (array)(simplexml_load_file($url)->dns);
+        return [];
     }
 
     // ModifyNS updates the nameservers for a given domain. $nameservers should be an array of strings with the nameserver DNS entries.
     // Enom's API only allows up to 12 nameserver records. If this function is given more than 12, the rest are ignored.
     public function ModifyNS(string $sld, string $tld, array $nameservers) : bool {
-        $queryData = $this->commonApiArgs('ModifyNS', $sld, $tld);
-
-        $i = 1; // The count is out here because we don't know if all elements are valid
-        foreach ($nameservers as $ns) {
-            if ($i >= 13) break; // Enforce max of 12 servers. Ignore 13 and beyond if given.
-            if (trim($ns) === '') continue;
-
-            $queryData['ns'.$i] = urlencode($ns);
-            $i++;
-        }
-
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return simplexml_load_file($url)->RRPCode == '200';
+        return false;
     }
 
     // resellterTypeToInt takes a string identifier and returns enom's int parameter for the type of reseller product
     private function pricingType(string $type) : int {
-        switch($type) {
-            case 'new':
-                return 10;
-            case 'renew':
-                return 16;
-            case 'transfer':
-                return 19;
-        }
+        return 0;
     }
 
     // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
     public function GetResellerPrice(string $tld) : array {
-        $queryData = $this->baseApiArgs('PE_GetResellerPrice');
-        $queryData['tld'] = urlencode($tld);
-
-        $queryData['ProductType'] = $this->pricingType('new');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['new'] = (float)(simplexml_load_file($url)->productprice->price);
-
-        $queryData['ProductType'] = $this->pricingType('renew');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['renew'] = (float)(simplexml_load_file($url)->productprice->price);
-
-        $queryData['ProductType'] = $this->pricingType('transfer');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['transfer'] = (float)(simplexml_load_file($url)->productprice->price);
- 
-        return $prices;
+        return [];
     }
 }
