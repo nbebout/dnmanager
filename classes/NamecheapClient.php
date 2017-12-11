@@ -69,13 +69,25 @@ class NameCheapClient implements RegistrarClient {
     }
 
     // will return string true if domain is locked, false if domain is unlocked
-    private function DomainLocked(string $domain) : bool {
+    public function DomainLocked(string $domain) : bool {
             $queryData2 = $this->baseApiArgs('namecheap.domains.getRegistrarLock');
             $queryData2['DomainName'] = urlencode($domain);
             $qs2 = http_build_query($queryData2);
             $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
             $xml2 = simplexml_load_file($url2);
             return (string)($xml2->CommandResponse->DomainGetRegistrarLockResult->attributes()->RegistrarLockStatus) === 'true';
+    }
+
+    // Will toggle the current locked status for the given domain
+    public function ToggleLocked(string $domain) : bool {
+            $split = explode('.', $domain);
+            $queryData = $this->baseApiArgs('namecheap.domains.setRegistrarLock');
+            $queryData['DomainName'] = $domain;
+            $queryData['LockAction'] = ($this->DomainLocked($domain) === true ? "UNLOCK" : "LOCK");
+            $qs = http_build_query($queryData);
+            $url = "{$this->server}{$this->apiEndpoint}?$qs";
+            $numerrors = simplexml_load_file($url)->Errors->Error->count();
+            return !$numerrors;
     }
 
     public function SupportsDnsSec() : bool {
