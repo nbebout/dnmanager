@@ -5,7 +5,9 @@ require_once('init.php');
 $domain = $_REQUEST['domain'];
 $registrar = $_REQUEST['registrar'];
 
-$clients[$registrar]->ToggleLocked($domain);
+if (isset($clients[$registrar])) {
+  $clients[$registrar]->ToggleLocked($domain);
+}
 
 header("Location: index.php");
 
