@@ -23,6 +23,15 @@ if (!empty($config['namecheap']['server'])) {
     $clients['namecheap'] = $namecheapClient;
 }
 
+// Setup ResellerClub client
+if (!empty($config['resellerclub']['server'])) {
+    $resellerclubClient = new ResellerClubClient($config['resellerclub']['server'], $config['resellerclub']['username'], $config['resellerclub']['apikey']);
+    if (defined('TESTING') && isset($config['resellerclub']['api_path'])) {
+        $resellerclubClient->SetApiPath($config['resellerclub']['api_path']);
+    }
+    $clients['resellerclub'] = $resellerclubClient;
+}
+
 function sortDomains(array &$domains) {
     usort($domains, function($a, $b): int {
         return strcmp($a->name, $b->name);

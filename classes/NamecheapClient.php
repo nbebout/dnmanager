@@ -93,6 +93,12 @@ class NameCheapClient implements RegistrarClient {
     public function SupportsDnsSec() : bool {
         return false;
     }
+    public function SupportsNameservers() : bool {
+        return true;
+    }
+    public function SupportsToggleLocked() : bool {
+        return true;
+    }
 
     // GetDnsSec returns DNS Sec information about the given domain.
     public function GetDnsSec(string $sld, string $tld) : array {

@@ -1,21 +1,21 @@
 <?php
 
-class EnomClient implements RegistrarClient {
+class ResellerClubClient implements RegistrarClient {
     const RESPONSE_TYPE = 'XML';
 
     private $server; // Server host name including schema with no trailing slash
     private $username;
-    private $password;
-    private $apiEndpoint = "/interface.asp"; // API page to call, must begin with a slash
+    private $apikey;
+    private $apiEndpoint = "/api/domains/"; // API page to call, must begin with a slash
 
-    public function __construct(string $server, string $username, string $password) {
-        if (empty($server) || empty($username) || empty($password)) {
-            throw new Exception('Server, username, and password required for enom api');
+    public function __construct(string $server, string $username, string $apikey) {
+        if (empty($server) || empty($username) || empty($apikey)) {
+            throw new Exception('Server, username, and apikey required for resellerclub api');
         }
 
         $this->server = trim($server, '/');
         $this->username = $username;
-        $this->password = $password;
+        $this->apikey = $apikey;
     }
 
     // SetApiPath will set the $apiEndpoint variable. This should only be used when testing with a stub server.
@@ -27,12 +27,10 @@ class EnomClient implements RegistrarClient {
     }
 
     // baseApiArgs returns an array of query parameters common to all Enom API calls.
-    private function baseApiArgs(string $command) : array {
+    private function baseApiArgs() : array {
         return [
-            'command' => $command,
-            'responsetype' => self::RESPONSE_TYPE,
-            'uid' => $this->username,
-            'pw' => $this->password
+            'auth-userid' => $this->username,
+            'api-key' => $this->apikey
         ];
     }
 
@@ -46,43 +44,86 @@ class EnomClient implements RegistrarClient {
 
     // GetAllDomains will return information on all domains owned by $this->username.
     public function GetAllDomains() : array {
-        $queryData = $this->baseApiArgs('GetAllDomains');
+        $orders = array();
+        $queryData = $this->baseApiArgs();
+        $queryData['no-of-records'] = 10;
+        $queryData['page-no'] = 1;
         $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
+        $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
         $xml = simplexml_load_file($url);
-        $domainlistXML = $xml->GetAllDomains->DomainDetail;
-
-        $domainlist = [];
-        foreach($domainlistXML as $domain) {
-            $d = new Domain();
-            $d->registrar = 'eNom';
-            $d->name = $domain->DomainName;
-            $d->locked = ($domain->lockstatus == 'Locked');
-            $d->expires = $domain->{'expiration-date'};
-            $d->autorenew = ($domain->AutoRenew == 'Yes');
-            $domainlist []= $d;
+        foreach ($xml->entry as $entry) {
+          if ($entry->hashtable) {
+            foreach ($entry->hashtable->entry as $element) {
+              if ($element->string[0] == 'orders.orderid') {
+                $orders[] = (int)$element->string[1];
+              }
+            }
+          }
         }
-        return $domainlist;
+        $domainlist = [];
+        foreach ($orders as $order) {
+          $queryData = $this->baseApiArgs();
+          $queryData['order-id'] = $order;
+          $queryData['options'] = 'OrderDetails';
+          $qs = http_build_query($queryData);
+          $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
+          $xml = simplexml_load_file($url);
+          $d = new Domain();
+          $d->registrar = 'ResellerClub';
+          foreach ($xml->entry as $element) {
+            if ($element->string[0] == 'domainname') { $d->name = (string)$element->string[1]; }
+            if ($element->string[0] == 'endtime') { $d->expires = date("m/d/Y", (int)$element->string[1]); }
+            if ($element->string[0] == 'orderstatus') {
+              foreach ($element->vector as $vector) {
+                if ($vector->string == 'transferlock') { $d->locked = true; }
+                if ($vector->string == 'resellerlock') { $d->locked = true; }
+              }
+            }
+          }
+          $domainlist []= $d;
+        }
+      return $domainlist;
     }
 
+    public function GetOrderID(string $domain) : int {
+        $queryData = $this->baseApiArgs();
+        $queryData['no-of-records'] = 10;
+        $queryData['page-no'] = 1;
+        $queryData['domain-name'] = urlencode($domain);
+        $qs = http_build_query($queryData);
+        $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
+        $xml = simplexml_load_file($url);
+        foreach ($xml->entry as $entry) {
+          if ($entry->hashtable) {
+            foreach ($entry->hashtable->entry as $element) {
+              if ($element->string[0] == 'orders.orderid') { return (int)$element->string[1]; }
+            }
+          }
+        }
+    }
+              
     // will return string true if domain is locked, false if domain is unlocked
     public function DomainLocked(string $domain) : bool {
-            $split = explode('.', $domain);
-            $queryData2 = $this->commonApiArgs('GetRegLock', $split[0], $split[1]);
-            $qs2 = http_build_query($queryData2);
-            $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
-            $xml2 = simplexml_load_file($url2);
-            return (string)($xml2->{'reg-lock'}) === '1';
+            $queryData = $this->baseApiArgs();
+            $queryData['order-id'] = $this->GetOrderID($domain);
+            $qs = http_build_query($queryData);
+            $url = "{$this->server}{$this->apiEndpoint}locks.xml?$qs";
+            $xml = simplexml_load_file($url);
+            return ($xml->count() >= 1);
     }
 
     // Will toggle the current locked status for the given domain
     public function ToggleLocked(string $domain) : bool {
-            $split = explode('.', $domain);
-            $queryData = $this->commonApiArgs('SetRegLock', $split[0], $split[1]);
-            $queryData['UnlockRegistrar'] = $this->DomainLocked($domain);
+            if ($this->DomainLocked($domain)) { $command = 'enable-theft-protection'; }
+            elseif (!$this->DomainLocked($domain)) { $command = 'disable-theft-protection'; }
+            $queryData = $this->baseApiArgs();
+            $queryData['order-id'] = $this->GetOrderID($domain);
             $qs = http_build_query($queryData);
-            $url = "{$this->server}{$this->apiEndpoint}?$qs";
-            return simplexml_load_file($url)->RRPCode == '200';
+            $url = "{$this->server}{$this->apiEndpoint}$command.xml?$qs";
+ var_dump($url);
+            $xml = simplexml_load_file($url);
+            var_dump($xml);
+            //return simplexml_load_file($url)->RRPCode == '200';
     }
 
     // GetDnsSec returns DNS Sec information about the given domain.
@@ -106,13 +147,13 @@ class EnomClient implements RegistrarClient {
     }
 
     public function SupportsDnsSec() : bool {
-        return true;
+        return false;
     }
     public function SupportsNameservers() : bool {
-        return true;
+        return false;
     }
     public function SupportsToggleLocked() : bool {
-        return true;
+        return false;
     }
 
     // commonDnsSec calls the API using params and paths that are common between the DNS SEC endpoints.
