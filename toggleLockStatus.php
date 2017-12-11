@@ -5,10 +5,7 @@ require_once('init.php');
 $domain = $_REQUEST['domain'];
 $registrar = $_REQUEST['registrar'];
 
-if ($registrar == 'enom') {
-  $clients['enom']->ToggleLocked($domain);
-} else if ($registrar == 'namecheap') {
-  $clients['namecheap']->ToggleLocked($domain);
-}
+$clients[$registrar]->ToggleLocked($domain);
+
 header("Location: index.php");
 

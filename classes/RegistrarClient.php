@@ -5,8 +5,8 @@ interface RegistrarClient {
 
     public function GetAllDomains() : array;
 
-    public function DomainLocked() : bool;
-    public function ToggleLocked() : bool;
+    public function DomainLocked(string $domain) : bool;
+    public function ToggleLocked(string $domain) : bool;
 
     public function SupportsDnsSec() : bool;
     public function GetDnsSec(string $sld, string $tld) : array;
