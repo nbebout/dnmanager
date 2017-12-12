@@ -3,6 +3,7 @@
 Supported Registrars:
 
 - eNom
+- ResellerClub
 - Namecheap (No DNSSEC management)
 
 ## Developing
