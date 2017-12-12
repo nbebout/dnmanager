@@ -174,7 +174,17 @@ class ResellerClubClient implements RegistrarClient {
 
     // GetDns returns information about the nameserves for the given domain.
     public function GetDns(string $sld, string $tld) : array {
-        return [];
+          $queryData = $this->baseApiArgs();
+          $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
+          $queryData['options'] = 'NsDetails';
+          $qs = http_build_query($queryData);
+          $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
+          $xml = simplexml_load_file($url);
+          $nameservers = array();
+          foreach ($xml->entry as $entry) {
+            if (substr($entry->string[0], 0, 2) == 'ns') { $nameservers[] = (string)$entry->string[1]; }
+          }
+        return $nameservers;
     }
 
     // ModifyNS updates the nameservers for a given domain. $nameservers should be an array of strings with the nameserver DNS entries.
