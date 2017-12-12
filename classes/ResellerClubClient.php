@@ -141,7 +141,7 @@ class ResellerClubClient implements RegistrarClient {
         return false;
     }
     public function SupportsNameservers() : bool {
-        return false;
+        return true;
     }
     public function SupportsToggleLocked() : bool {
         return true;
