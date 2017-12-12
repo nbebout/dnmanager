@@ -159,11 +159,35 @@ class NameCheapClient implements RegistrarClient {
         if ($tld == 'name') { $prices['new'] = 999.99; $prices['renew'] = 999.99; $prices['transfer'] = 999.99; return $prices; }
         $resultxml = simplexml_load_file($url)->CommandResponse->UserGetPricingResult->ProductType;
 
-        foreach ($resultxml->ProductCategory as $productCategory) :
-          if ($productCategory->attributes()['Name'] == 'register') { $prices['new'] = (float)$productCategory->Product->Price->attributes()->Price; }
-          if ($productCategory->attributes()['Name'] == 'renew') { $prices['renew'] = (float)$productCategory->Product->Price->attributes()->Price; }
-          if ($productCategory->attributes()['Name'] == 'transfer') { $prices['transfer'] = (float)$productCategory->Product->Price->attributes()->Price; }
-        endforeach;
+        foreach ($resultxml->ProductCategory as $productCategory) {
+          if ($productCategory->attributes()['Name'] == 'register') {
+            foreach ($productCategory->Product->Price as $price) {
+              $priceattributes = $price->attributes();
+              if ((int)$priceattributes['Duration'] === 1) {
+                $prices['new'] = (float)$priceattributes->YourPrice + (float)$priceattributes->YourAdditonalCost;
+                break;
+              }
+            }
+          }
+          if ($productCategory->attributes()['Name'] == 'renew') { 
+            foreach ($productCategory->Product->Price as $price) {
+              $priceattributes = $price->attributes();
+              if ((int)$priceattributes['Duration'] === 1) {
+                $prices['renew'] = (float)$priceattributes->YourPrice + (float)$priceattributes->YourAdditonalCost;
+                break;
+              }
+            }
+          }
+          if ($productCategory->attributes()['Name'] == 'transfer') {
+            foreach ($productCategory->Product->Price as $price) {
+              $priceattributes = $price->attributes();
+              if ((int)$priceattributes['Duration'] === 1) {
+                $prices['transfer'] = (float)$priceattributes->YourPrice + (float)$priceattributes->YourAdditonalCost;
+                break;
+              }
+            }
+          }
+        }
         return $prices;
     }
 }
