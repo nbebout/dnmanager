@@ -28,20 +28,27 @@ sort($config['pricingTLDs']);
         <th>NameCheap Register</th>
         <th>NameCheap Renew</th>
         <th>NameCheap Transfer</th>
+        <th>ResellerClub Register</th>
+        <th>ResellerClub Renew</th>
+        <th>ResellerClub Transfer</th>
       </tr>
       <?php setlocale(LC_MONETARY, 'en_US.UTF-8'); 
+          $enomPrices = $clients['enom']->GetAllPrices($config['pricingTLDs']);
+          $namecheapPrices = $clients['namecheap']->GetAllPrices($config['pricingTLDs']);
+          $resellerclubPrices = $clients['resellerclub']->GetAllPrices($config['pricingTLDs']);
         foreach ($config['pricingTLDs'] as $tld):
-          $enomPrices = $clients['enom']->GetResellerPrice($tld);
-          $namecheapPrices = $clients['namecheap']->GetResellerPrice($tld); 
       ?>
         <tr>
           <td><?= $tld; ?></td>
-          <td><?= money_format('%.2n', $enomPrices['new']); ?></td>
-          <td><?= money_format('%.2n', $enomPrices['renew']); ?></td>
-          <td><?= money_format('%.2n', $enomPrices['transfer']); ?></td>
-          <td><?= money_format('%.2n', $namecheapPrices['new']); ?></td>
-          <td><?= money_format('%.2n', $namecheapPrices['renew']); ?></td>
-          <td><?= money_format('%.2n', $namecheapPrices['transfer']); ?></td>
+          <td><?= money_format('%.2n', $enomPrices[$tld]['new']); ?></td>
+          <td><?= money_format('%.2n', $enomPrices[$tld]['renew']); ?></td>
+          <td><?= money_format('%.2n', $enomPrices[$tld]['transfer']); ?></td>
+          <td><?= money_format('%.2n', $namecheapPrices[$tld]['new']); ?></td>
+          <td><?= money_format('%.2n', $namecheapPrices[$tld]['renew']); ?></td>
+          <td><?= money_format('%.2n', $namecheapPrices[$tld]['transfer']); ?></td>
+          <td><?= money_format('%.2n', $resellerclubPrices[$tld]['new']); ?></td>
+          <td><?= money_format('%.2n', $resellerclubPrices[$tld]['renew']); ?></td>
+          <td><?= money_format('%.2n', $resellerclubPrices[$tld]['transfer']); ?></td>
         </tr>
       <?php endforeach; ?>
   </body>

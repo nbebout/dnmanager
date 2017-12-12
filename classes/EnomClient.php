@@ -199,4 +199,12 @@ class EnomClient implements RegistrarClient {
  
         return $prices;
     }
+
+    public function GetAllPrices(array $tldarray) : array {
+        $prices = array();
+        foreach ($tldarray as $tld) {
+          $prices[$tld] = $this->GetResellerPrice($tld);
+        }
+        return $prices;
+    }
 }

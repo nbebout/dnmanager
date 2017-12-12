@@ -213,6 +213,73 @@ class ResellerClubClient implements RegistrarClient {
 
     // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
     public function GetResellerPrice(string $tld) : array {
-        return [];
+          $queryData = $this->baseApiArgs();
+          $qs = http_build_query($queryData);
+          $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
+          $xml = simplexml_load_file($url);
+          $tldtolookfor = "dot$tld";
+          if ($tld == 'biz') { $tldtolookfor = 'dombiz'; }
+          if ($tld == 'com') { $tldtolookfor = 'domcno'; }
+          if ($tld == 'info') { $tldtolookfor = 'dominfo'; }
+          if ($tld == 'org') { $tldtolookfor = 'domorg'; }
+          if ($tld == 'us') { $tldtolookfor = 'domus'; }
+          $prices = array();
+          foreach ($xml->entry as $entry) {
+            if ($entry->string == "$tldtolookfor") {
+              foreach ($entry->hashtable->entry as $hashtableentry) {
+                if ($hashtableentry->string == 'addnewdomain') {
+                  $prices['new'] = (float)$hashtableentry->hashtable->entry->string[1];
+                }
+                if ($hashtableentry->string == 'renewdomain') {
+                  $prices['renew'] = (float)$hashtableentry->hashtable->entry->string[1];
+                }
+                if ($hashtableentry->string == 'addtransferdomain') {
+                  $prices['transfer'] = (float)$hashtableentry->hashtable->entry->string[1];
+                }
+              }
+            }
+          } 
+
+        return $prices;
+    }
+
+    private function WhatToSearchFor(string $tld) : string {
+            $donutsgroup1 = ['agency', 'business', 'center', 'city', 'company', 'directory', 'education', 'email', 'equipment', 'exposed', 'football', 'fyi', 'gallery', 'graphics', 'gratis', 'institute', 'international', 'lighting', 'management', 'network', 'photography', 'photos', 'reisen', 'report', 'run', 'schule', 'soccer', 'solutions', 'supplies', 'supply', 'support', 'systems', 'technology', 'tips', 'today'];
+            $donutsgroup2 = ['academy', 'associates', 'bargains', 'bike', 'boutique', 'builders', 'cab', 'cafe', 'camera', 'camp', 'cards', 'care', 'cash', 'catering', 'chat', 'cheap', 'church', 'cleaning', 'clothing', 'coffee', 'community', 'computer', 'construction', 'contractors', 'cool', 'deals', 'digital', 'direct', 'discount', 'dog', 'domains', 'enterprises', 'estate', 'events', 'exchange', 'express', 'fail', 'farm', 'fish', 'fitness', 'florist', 'foundation', 'gifts', 'glass', 'gripe', 'guide', 'guru', 'house', 'immo', 'industries', 'kitchen', 'land', 'life', 'limited', 'marketing', 'mba', 'media', 'money', 'parts', 'place', 'plumbing', 'plus', 'productions', 'properties', 'rentals', 'repair', 'sarl', 'school', 'services', 'shoes', 'show', 'singles', 'solar', 'style', 'team', 'tools', 'town', 'toys', 'training', 'vacations', 'vision', 'watch', 'works', 'world', 'wtf', 'zone'];
+            $donutsgroup3 = ['apartments', 'bingo', 'capital', 'careers', 'claims', 'clinic', 'coach', 'codes', 'condos', 'coupons', 'cruises', 'dating', 'delivery', 'dental', 'diamonds', 'engineering', 'expert', 'finance', 'financial', 'flights', 'fund', 'furniture', 'golf', 'healthcare', 'hockey', 'holdings', 'holiday', 'insure', 'jewelry', 'lease', 'legal', 'limo', 'maison', 'memorial', 'partners', 'pizza', 'recipes', 'restaurant', 'surgery', 'tax', 'taxi', 'tennis', 'theater', 'tienda', 'tours', 'university', 'ventures', 'viajes', 'villas', 'voyage'];
+            $dom = ['biz', 'info', 'org', 'us'];
+            if (in_array($tld, $donutsgroup1)) { return 'donutsgroup1'; }
+            else if (in_array($tld, $donutsgroup2)) { return 'donutsgroup2'; }
+            else if (in_array($tld, $donutsgroup3)) { return 'donutsgroup3'; }
+            else if (in_array($tld, $dom)) { return "dom$tld"; }
+            else if ($tld == 'com') { return 'domcno'; }
+            else { return "dot$tld"; }
+    }
+
+    public function GetAllPrices(array $tldarray) : array {
+          $queryData = $this->baseApiArgs();
+          $qs = http_build_query($queryData);
+          $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
+          $xml = simplexml_load_file($url);
+          $prices = array();
+          foreach ($tldarray as $tld) {
+            foreach ($xml->entry as $entry) {
+              if ($entry->string == $this->WhatToSearchFor($tld)) {
+                foreach ($entry->hashtable->entry as $hashtableentry) {
+                  if ($hashtableentry->string == 'addnewdomain') {
+                    $prices[$tld]['new'] = (float)$hashtableentry->hashtable->entry->string[1];
+                  }
+                  if ($hashtableentry->string == 'renewdomain') {
+                    $prices[$tld]['renew'] = (float)$hashtableentry->hashtable->entry->string[1];
+                  }
+                  if ($hashtableentry->string == 'addtransferdomain') {
+                    $prices[$tld]['transfer'] = (float)$hashtableentry->hashtable->entry->string[1];
+                  }
+                }
+              }
+            }
+          }
+
+      return $prices;
     }
 }
