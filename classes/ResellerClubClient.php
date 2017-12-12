@@ -1,8 +1,6 @@
 <?php
 
 class ResellerClubClient implements RegistrarClient {
-    const RESPONSE_TYPE = 'XML';
-
     private $server; // Server host name including schema with no trailing slash
     private $username;
     private $apikey;
@@ -75,8 +73,9 @@ class ResellerClubClient implements RegistrarClient {
             if ($element->string[0] == 'endtime') { $d->expires = date("m/d/Y", (int)$element->string[1]); }
             if ($element->string[0] == 'orderstatus') {
               foreach ($element->vector as $vector) {
-                if ($vector->string == 'transferlock') { $d->locked = true; }
-                if ($vector->string == 'resellerlock') { $d->locked = true; }
+                if ($vector->string == 'transferlock' || $vector->string == 'resellerlock') {
+                  $d->locked = true;
+                }
               }
             }
           }
@@ -85,7 +84,7 @@ class ResellerClubClient implements RegistrarClient {
       return $domainlist;
     }
 
-    public function GetOrderID(string $domain) : int {
+    private function GetOrderID(string $domain) : int {
         $queryData = $this->baseApiArgs();
         $queryData['no-of-records'] = 10;
         $queryData['page-no'] = 1;
@@ -114,8 +113,7 @@ class ResellerClubClient implements RegistrarClient {
 
     // Will toggle the current locked status for the given domain
     public function ToggleLocked(string $domain) : bool {
-            if ($this->DomainLocked($domain)) { $command = 'disable-theft-protection'; }
-            elseif (!$this->DomainLocked($domain)) { $command = 'enable-theft-protection'; }
+            $command = $this->DomainLocked($domain) ? 'disable-theft-protection' : 'enable-theft-protection';
             $queryData = $this->baseApiArgs();
             $queryData['order-id'] = $this->GetOrderID($domain);
             $qs = http_build_query($queryData);
@@ -128,10 +126,10 @@ class ResellerClubClient implements RegistrarClient {
             $xml = simplexml_load_string($curl_response);
             foreach ($xml->entry as $entry) {
               if ($entry->string[0] == 'actionstatus') {
-                if ((string)$entry->string[1] == 'Success') { return true; }
-              else { return false; }
+                return $entry->string[1] == 'Success';
               }
             }
+            return false;
     }
 
     // GetDnsSec returns DNS Sec information about the given domain.
@@ -149,19 +147,6 @@ class ResellerClubClient implements RegistrarClient {
         return true;
     }
 
-    // commonDnsSec calls the API using params and paths that are common between the DNS SEC endpoints.
-    private function commonDnsSec(string $command, string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : SimpleXMLElement {
-        $queryData = $this->commonApiArgs($command, $sld, $tld);
-        $queryData['alg'] = urlencode($alg);
-        $queryData['digest'] = urlencode($digest);
-        $queryData['digesttype'] = urlencode($digesttype);
-        $queryData['keytag'] = urlencode($keytag);
-
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return simplexml_load_file($url);
-    }
-
     // AddDnsSec will add a new DNS Sec record to the given domain.
     public function AddDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : bool {
         return false;
@@ -175,7 +160,6 @@ class ResellerClubClient implements RegistrarClient {
     // GetDns returns information about the nameserves for the given domain.
     public function GetDns(string $sld, string $tld) : array {
           $queryData = $this->baseApiArgs();
-var_dump($queryData);
           $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
           $queryData['options'] = 'NsDetails';
           $qs = http_build_query($queryData);
@@ -193,7 +177,6 @@ var_dump($queryData);
     public function ModifyNS(string $sld, string $tld, array $nameservers) : bool {
         $queryData = $this->baseApiArgs();
         $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
-var_dump($queryData);
         // Trim all whitespace and remove empty entries
         $nameservers = array_map(function($item) { return trim($item); }, $nameservers);
         $nameservers = array_filter($nameservers, function($item) { return $item != ''; });
@@ -202,11 +185,13 @@ var_dump($queryData);
             array_splice($nameservers, 12);
         }
 
-        $queryData['ns'] = implode(",", $nameservers);
+       // $queryData['ns'] = implode(",", $nameservers);
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}modify-ns.xml?$qs";
-var_dump($url);
-/*
+        foreach ($nameservers as $nameserver) {
+          $url .= "&ns=$nameserver";
+        }
+
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_POST, true);
@@ -215,11 +200,9 @@ var_dump($url);
         $xml = simplexml_load_string($curl_response);
         foreach ($xml->entry as $entry) {
           if ($entry->string[0] == 'actionstatus') {
-            if ((string)$entry->string[1] == 'Success') { return true; }
-          else { return false; }
+            return $entry->string[1] == 'Success';
           }
         }
-*/
         return false;
     }
 

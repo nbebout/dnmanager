@@ -11,6 +11,8 @@ if (isset($_POST['submit'])) {
     $clients['enom']->ModifyNS($sld, $tld, $_POST['ns']);
   } else if ($registrar == 'namecheap') {
     $clients['namecheap']->ModifyNS($sld, $tld, $_POST['ns']);
+  } else if ($registrar == 'resellerclub') {
+    $clients['resellerclub']->ModifyNS($sld, $tld, $_POST['ns']);
   }
 }
 
