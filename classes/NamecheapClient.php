@@ -171,6 +171,7 @@ class NameCheapClient implements RegistrarClient {
           }
           if ($productCategory->attributes()['Name'] == 'renew') { 
             foreach ($productCategory->Product->Price as $price) {
+              $priceattributes = $price->attributes();
               if ((int)$priceattributes['Duration'] === 1) {
                 $prices['renew'] = (float)$priceattributes->YourPrice + (float)$priceattributes->YourAdditonalCost;
                 break;
@@ -179,6 +180,7 @@ class NameCheapClient implements RegistrarClient {
           }
           if ($productCategory->attributes()['Name'] == 'transfer') {
             foreach ($productCategory->Product->Price as $price) {
+              $priceattributes = $price->attributes();
               if ((int)$priceattributes['Duration'] === 1) {
                 $prices['transfer'] = (float)$priceattributes->YourPrice + (float)$priceattributes->YourAdditonalCost;
                 break;
