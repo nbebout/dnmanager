@@ -41,13 +41,25 @@ sortDomains($domains);
         <td><?= $domain->name ?></td>
         <td><?= $domain->registrar ?></td>
         <td><?= explode(' ', $domain->expires, 2)[0] ?></td>
-        <td><a href="toggleLockStatus.php?domain=<?= $domain->name ?>&registrar=<?= strtolower($domain->registrar); ?>"><?= $domain->locked ? 'Yes' : 'No' ?></a></td>
+        <td>
+          <?php if ($clients[strtolower($domain->registrar)]->SupportsToggleLocked()): ?>
+            <a href="toggleLockStatus.php?domain=<?= $domain->name ?>&registrar=<?= strtolower($domain->registrar); ?>">
+            <?= $domain->locked ? 'Yes' : 'No' ?>
+            </a>
+          <?php else: ?>
+            <?= $domain->locked ? 'Yes' : 'No' ?>
+          <?php endif; ?>
+        </td>
         <td>
           <?php if ($clients[strtolower($domain->registrar)]->SupportsDnsSec()): ?>
             <a href="manageDNSSEC.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain->registrar); ?>">Edit</a>
           <?php endif; ?>
         </td>
-        <td><a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain->registrar); ?>">Edit</a></td>
+        <td>
+          <?php if ($clients[strtolower($domain->registrar)]->SupportsNameservers()): ?>
+            <a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain->registrar); ?>">Edit</a>
+          <?php endif; ?>
+        </td>
       </tr>
       <?php endforeach; ?>
   </body>

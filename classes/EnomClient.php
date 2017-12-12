@@ -108,6 +108,12 @@ class EnomClient implements RegistrarClient {
     public function SupportsDnsSec() : bool {
         return true;
     }
+    public function SupportsNameservers() : bool {
+        return true;
+    }
+    public function SupportsToggleLocked() : bool {
+        return true;
+    }
 
     // commonDnsSec calls the API using params and paths that are common between the DNS SEC endpoints.
     private function commonDnsSec(string $command, string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : SimpleXMLElement {
