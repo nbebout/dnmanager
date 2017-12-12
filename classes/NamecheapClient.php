@@ -162,17 +162,27 @@ class NameCheapClient implements RegistrarClient {
         foreach ($resultxml->ProductCategory as $productCategory) {
           if ($productCategory->attributes()['Name'] == 'register') {
             foreach ($productCategory->Product->Price as $price) {
-              if ((int)$price->attributes()['Duration'] == 1) { $prices['new'] = (float)$price->attributes()->YourPrice + (float)$price->attributes()->YourAdditonalCost; break; }
+              $priceattributes = $price->attributes();
+              if ((int)$priceattributes['Duration'] === 1) {
+                $prices['new'] = (float)$priceattributes->YourPrice + (float)$priceattributes->YourAdditonalCost;
+                break;
+              }
             }
           }
           if ($productCategory->attributes()['Name'] == 'renew') { 
             foreach ($productCategory->Product->Price as $price) {
-              if ((int)$price->attributes()['Duration'] == 1) { $prices['renew'] = (float)$price->attributes()->YourPrice + (float)$price->attributes()->YourAdditonalCost; break; }
+              if ((int)$priceattributes['Duration'] === 1) {
+                $prices['renew'] = (float)$priceattributes->YourPrice + (float)$priceattributes->YourAdditonalCost;
+                break;
+              }
             }
           }
           if ($productCategory->attributes()['Name'] == 'transfer') {
             foreach ($productCategory->Product->Price as $price) {
-              if ((int)$price->attributes()['Duration'] == 1) { $prices['transfer'] = (float)$price->attributes()->YourPrice + (float)$price->attributes()->YourAdditonalCost; break; }
+              if ((int)$priceattributes['Duration'] === 1) {
+                $prices['transfer'] = (float)$priceattributes->YourPrice + (float)$priceattributes->YourAdditonalCost;
+                break;
+              }
             }
           }
         }
