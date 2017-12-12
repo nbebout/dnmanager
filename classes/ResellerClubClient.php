@@ -175,6 +175,7 @@ class ResellerClubClient implements RegistrarClient {
     // GetDns returns information about the nameserves for the given domain.
     public function GetDns(string $sld, string $tld) : array {
           $queryData = $this->baseApiArgs();
+var_dump($queryData);
           $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
           $queryData['options'] = 'NsDetails';
           $qs = http_build_query($queryData);
@@ -190,6 +191,35 @@ class ResellerClubClient implements RegistrarClient {
     // ModifyNS updates the nameservers for a given domain. $nameservers should be an array of strings with the nameserver DNS entries.
     // Enom's API only allows up to 12 nameserver records. If this function is given more than 12, the rest are ignored.
     public function ModifyNS(string $sld, string $tld, array $nameservers) : bool {
+        $queryData = $this->baseApiArgs();
+        $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
+var_dump($queryData);
+        // Trim all whitespace and remove empty entries
+        $nameservers = array_map(function($item) { return trim($item); }, $nameservers);
+        $nameservers = array_filter($nameservers, function($item) { return $item != ''; });
+        // Enforce max number of 12 nameservers
+        if (count($nameservers) > 12) {
+            array_splice($nameservers, 12);
+        }
+
+        $queryData['ns'] = implode(",", $nameservers);
+        $qs = http_build_query($queryData);
+        $url = "{$this->server}{$this->apiEndpoint}modify-ns.xml?$qs";
+var_dump($url);
+/*
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, []);
+        $curl_response = curl_exec($curl);
+        $xml = simplexml_load_string($curl_response);
+        foreach ($xml->entry as $entry) {
+          if ($entry->string[0] == 'actionstatus') {
+            if ((string)$entry->string[1] == 'Success') { return true; }
+          else { return false; }
+          }
+        }
+*/
         return false;
     }
 
