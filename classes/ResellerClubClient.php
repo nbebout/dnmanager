@@ -134,11 +134,32 @@ class ResellerClubClient implements RegistrarClient {
 
     // GetDnsSec returns DNS Sec information about the given domain.
     public function GetDnsSec(string $sld, string $tld) : array {
-        return [];
+        $queryData = $this->baseApiArgs();
+        $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
+        $queryData['options'] = 'DNSSECDetails';
+        $qs = http_build_query($queryData);
+        $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
+        $xml = simplexml_load_file($url);
+        $keylist = [];
+        foreach ($xml->entry as $entry) {
+          if ($entry->string == 'dnssec') { 
+            foreach ($entry->list->hashtable as $hashtable) {
+              $k = new DNSSecKey();
+              foreach ($hashtable->entry as $element) {
+                if ($element->string[0] == 'algorithm') { $k->algorithm = (int)$element->string[1]; }
+                if ($element->string[0] == 'digesttype') { $k->digestType = (int)$element->string[1]; }
+                if ($element->string[0] == 'keytag') { $k->keyTag = (int)$element->string[1]; }
+                if ($element->string[0] == 'digest') { $k->digest = (string)$element->string[1]; }
+              }
+              $keylist[] = $k;
+            }
+          }
+        }
+        return $keylist;
     }
 
     public function SupportsDnsSec() : bool {
-        return false;
+        return true;
     }
     public function SupportsNameservers() : bool {
         return true;
@@ -147,14 +168,49 @@ class ResellerClubClient implements RegistrarClient {
         return true;
     }
 
+    // commonDnsSec calls the API using params and paths that are common between the DNS SEC endpoints.
+    private function commonDnsSec(string $command, string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : SimpleXMLElement {
+        $queryData = $this->baseApiArgs();
+        $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
+        $queryData['attr-name1'] = 'keytag';
+        $queryData['attr-value1'] = urlencode($keytag);
+        $queryData['attr-name2'] = 'algorithm';
+        $queryData['attr-value2'] = urlencode($alg);
+        $queryData['attr-name3'] = 'digesttype';
+        $queryData['attr-value3'] = urlencode($digesttype);
+        $queryData['attr-name4'] = 'digest';
+        $queryData['attr-value4'] = urlencode($digest);
+
+        $qs = http_build_query($queryData);
+        $url = "{$this->server}{$this->apiEndpoint}$command.xml?$qs";
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, []);
+        $curl_response = curl_exec($curl);
+        $xml = simplexml_load_string($curl_response);
+
+        return $xml;
+    }
+
     // AddDnsSec will add a new DNS Sec record to the given domain.
     public function AddDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : bool {
-        return false;
+        $xml = $this->commonDnsSec('add-dnssec', $sld, $tld, $keytag, $alg, $digesttype, $digest);
+        foreach ($xml->entry as $entry) {
+          if ($entry->string[0] == 'actionstatus') {
+            return $entry->string[1] == 'Success';
+          }
+        }
     }
 
     // DeleteDnsSec will delete the give DNS Sec record for the given domain.
     public function DeleteDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest) : bool {
-        return false;
+        $xml = $this->commonDnsSec('del-dnssec', $sld, $tld, $keytag, $alg, $digesttype, $digest);
+        foreach ($xml->entry as $entry) {
+          if ($entry->string[0] == 'actionstatus') {
+            return $entry->string[1] == 'Success';
+          }
+        }
     }
 
     // GetDns returns information about the nameserves for the given domain.
