@@ -146,10 +146,16 @@ class ResellerClubClient implements RegistrarClient {
             foreach ($entry->list->hashtable as $hashtable) {
               $k = new DNSSecKey();
               foreach ($hashtable->entry as $element) {
-                if ($element->string[0] == 'algorithm') { $k->algorithm = (int)$element->string[1]; }
-                if ($element->string[0] == 'digesttype') { $k->digestType = (int)$element->string[1]; }
-                if ($element->string[0] == 'keytag') { $k->keyTag = (int)$element->string[1]; }
-                if ($element->string[0] == 'digest') { $k->digest = (string)$element->string[1]; }
+                switch ($element->string[0]) {
+                  case 'algorithm':
+                    $k->algorithm = (int)$element->string[1]; break;
+                  case 'digesttype':
+                    $k->digestType = (int)$element->string[1]; break;
+                  case 'keytag':
+                    $k->keyTag = (int)$element->string[1]; break;
+                  case 'digest':
+                    $k->digest = (string)$element->string[1]; break;
+                }
               }
               $keylist[] = $k;
             }
