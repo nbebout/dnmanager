@@ -253,7 +253,7 @@ class ResellerClubClient implements RegistrarClient {
             else if (in_array($tld, $donutsgroup3)) { return 'donutsgroup3'; }
             else if (in_array($tld, $dom)) { return "dom$tld"; }
             else if ($tld == 'com') { return 'domcno'; }
-            else { return "dot$tld"; }
+            return "dot$tld";
     }
 
     public function GetAllPrices(array $tldarray) : array {
