@@ -20,4 +20,5 @@ interface RegistrarClient {
     public function ModifyNS(string $sld, string $tld, array $nameservers) : bool;
 
     public function GetResellerPrice(string $tld) : array;
+    public function GetAllPrices(array $tldarray) : array;
 }
