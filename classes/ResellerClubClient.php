@@ -68,9 +68,10 @@ class ResellerClubClient implements RegistrarClient {
           $xml = simplexml_load_file($url);
           $d = new Domain();
           $d->registrar = 'ResellerClub';
+          $hasEndTime = false;
           foreach ($xml->entry as $element) {
             if ($element->string[0] == 'domainname') { $d->name = (string)$element->string[1]; }
-            if ($element->string[0] == 'endtime') { $d->expires = date("m/d/Y", (int)$element->string[1]); }
+            if ($element->string[0] == 'endtime') { $d->expires = date("m/d/Y", (int)$element->string[1]); $hasEndTime = true; }
             if ($element->string[0] == 'orderstatus') {
               foreach ($element->vector as $vector) {
                 if ($vector->string == 'transferlock' || $vector->string == 'resellerlock') {
@@ -79,7 +80,7 @@ class ResellerClubClient implements RegistrarClient {
               }
             }
           }
-          $domainlist []= $d;
+          if ($hasEndTime) { $domainlist []= $d; }
         }
       return $domainlist;
     }

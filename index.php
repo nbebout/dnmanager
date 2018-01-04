@@ -7,7 +7,14 @@ foreach ($clients as $client) {
   $domains = array_merge($domains, $clientDomains);
 }
 
-sortDomains($domains);
+switch($_REQUEST['sortBy']) {
+    case "expires":
+        sortDomainsByExpires($domains); break;
+    case "domain":
+    default:
+        sortDomainsByName($domains); break;
+}
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -28,9 +35,9 @@ sortDomains($domains);
     <h1>Domain Name Manager</h1>
     <table>
       <tr>
-        <th>Domain Name</th>
+        <th><a href="index.php?sortBy=domain">Domain Name</a></th>
         <th>Registrar</th>
-        <th>Expiration Date</th>
+        <th><a href="index.php?sortBy=expires">Expiration Date</a></th>
         <th>Locked</th>
         <th>DNSSEC</th>
         <th>Nameservers</th>
