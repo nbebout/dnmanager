@@ -50,7 +50,6 @@ class ResellerClubClient implements RegistrarClient {
         $queryData['customer-id'] = $this->customerid;
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
-var_dump($url);
         $xml = simplexml_load_file($url);
         foreach ($xml->entry as $entry) {
           if ($entry->hashtable) {
