@@ -25,7 +25,7 @@ if (!empty($config['namecheap']['server'])) {
 
 // Setup ResellerClub client
 if (!empty($config['resellerclub']['server'])) {
-    $resellerclubClient = new ResellerClubClient($config['resellerclub']['server'], $config['resellerclub']['username'], $config['resellerclub']['apikey']);
+    $resellerclubClient = new ResellerClubClient($config['resellerclub']['server'], $config['resellerclub']['username'], $config['resellerclub']['apikey'], $config['resellerclub']['customer-id']);
     if (defined('TESTING') && isset($config['resellerclub']['api_path'])) {
         $resellerclubClient->SetApiPath($config['resellerclub']['api_path']);
     }

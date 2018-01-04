@@ -6,14 +6,15 @@ class ResellerClubClient implements RegistrarClient {
     private $apikey;
     private $apiEndpoint = "/api/domains/"; // API page to call, must begin with a slash
 
-    public function __construct(string $server, string $username, string $apikey) {
-        if (empty($server) || empty($username) || empty($apikey)) {
+    public function __construct(string $server, string $username, string $apikey, string $customerid) {
+        if (empty($server) || empty($username) || empty($apikey) || empty($customerid)) {
             throw new Exception('Server, username, and apikey required for resellerclub api');
         }
 
         $this->server = trim($server, '/');
         $this->username = $username;
         $this->apikey = $apikey;
+        $this->customerid = $customerid;
     }
 
     // SetApiPath will set the $apiEndpoint variable. This should only be used when testing with a stub server.
@@ -46,6 +47,7 @@ class ResellerClubClient implements RegistrarClient {
         $queryData = $this->baseApiArgs();
         $queryData['no-of-records'] = 10;
         $queryData['page-no'] = 1;
+        $queryData['customer-id'] = $this->customerid;
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
         $xml = simplexml_load_file($url);
