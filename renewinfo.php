@@ -37,9 +37,9 @@ setlocale(LC_MONETARY, 'en_US.UTF-8');
     <h1>Domain Name Manager</h1>
     <table>
       <tr>
-        <th><a href="index.php?sortBy=domain">Domain Name</a></th>
+        <th><a href="renewinfo.php?sortBy=domain">Domain Name</a></th>
         <th>Registrar</th>
-        <th><a href="index.php?sortBy=expires">Expiration Date</a></th>
+        <th><a href="renewinfo.php?sortBy=expires">Expiration Date</a></th>
         <th>Renewal Cost</th>
         <th>Locked</th>
         <th>DNSSEC</th>
