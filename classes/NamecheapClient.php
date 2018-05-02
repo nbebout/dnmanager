@@ -63,7 +63,6 @@ class NameCheapClient implements RegistrarClient {
             $d->locked = $this->DomainLocked($attributes->Name);
             $d->expires = $attributes->Expires;
             $d->autorenew = ($attributes->AutoRenew == 'true');
-            $domainlist []= $d;
         }
         return $domainlist;
     }
