@@ -52,9 +52,7 @@ class NameCheapClient implements RegistrarClient {
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
         $xml = simplexml_load_file($url);
-//var_dump($xml);
         $domainlistXML = $xml->CommandResponse->DomainGetListResult->Domain;
-//var_dump($domainlistXML);
         $domainlist = [];
         foreach($domainlistXML as $domain) {
             $attributes = $domain->attributes();
@@ -66,7 +64,6 @@ class NameCheapClient implements RegistrarClient {
             $d->autorenew = ($attributes->AutoRenew == 'true');
             $domainlist []= $d;
         }
-var_dump($domainlist);
         return $domainlist;
     }
 
