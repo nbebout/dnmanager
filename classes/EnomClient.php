@@ -207,4 +207,27 @@ class EnomClient implements RegistrarClient {
         }
         return $prices;
     }
+
+    // GetRenewalPrice returns product information about only renewals
+    public function GetRenewalPrice(string $tld) : array {
+        $queryData = $this->baseApiArgs('PE_GetResellerPrice');
+        $queryData['tld'] = urlencode($tld);
+
+        $queryData['ProductType'] = $this->pricingType('renew');
+        $qs = http_build_query($queryData);
+        $url = "{$this->server}{$this->apiEndpoint}?$qs";
+        $prices['renew'] = (float)(simplexml_load_file($url)->productprice->price);
+
+	return $prices;
+    }
+
+    public function GetAllRenewalPrices(array $tldarray) : array {
+        $prices = array();
+        foreach ($tldarray as $tld) {
+          $prices[$tld] = $this->GetRenewalPrice($tld);
+        }
+
+        return $prices;
+    }
+
 }

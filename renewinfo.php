@@ -6,7 +6,7 @@ foreach ($clients as $client) {
   $clientDomains = $client->GetAllDomains();
   $domains = array_merge($domains, $clientDomains);
 }
-  $enomPrices = $clients['enom']->GetAllPrices($config['pricingTLDs']);
+  $enomPrices = $clients['enom']->GetAllRenewalPrices($config['pricingTLDs']);
 
 switch($_REQUEST['sortBy']) {
     case "domain":
@@ -51,7 +51,7 @@ setlocale(LC_MONETARY, 'en_US.UTF-8');
         <td><?= $domain->name ?></td>
         <td><?= $domain->registrar ?></td>
         <td><?= explode(' ', $domain->expires, 2)[0] ?></td>
-        <td><?= money_format('%.2n', $enomPrices[$tld]['transfer']); ?></td>
+        <td><?= money_format('%.2n', $enomPrices[$tld]['renew']); ?></td>
         <td>
           <?php if ($clients[strtolower($domain->registrar)]->SupportsToggleLocked()): ?>
             <a href="toggleLockStatus.php?domain=<?= $domain->name ?>&registrar=<?= strtolower($domain->registrar); ?>">
