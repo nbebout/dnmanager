@@ -7,6 +7,8 @@ foreach ($clients as $client) {
   $domains = array_merge($domains, $clientDomains);
 }
 
+if (!isset($_REQUEST['sortBy'])) { $_REQUEST['sortBy'] = 'domain'; }
+
 switch($_REQUEST['sortBy']) {
     case "expires":
         sortDomainsByExpires($domains); break;
