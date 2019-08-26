@@ -11,7 +11,7 @@ if (isset($_POST['submit'])) {
   $keytag = $_POST['keytag'];
   $algorithm = $_POST['algorithm'];
   $digesttype = $_POST['digesttype'];
-  $digest = $_POST['digest'];
+  $digest = str_replace(' ', '', $_POST['digest']);
 
   if (isset($clients[$registrar])) {
     $keylist = $clients[$registrar]->AddDnsSec($sld, $tld, $keytag, intval($algorithm), $digesttype, $digest);
