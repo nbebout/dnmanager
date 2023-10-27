@@ -34,12 +34,12 @@ if (!empty($config['resellerclub']['server'])) {
 
 function sortDomainsByName(array &$domains) {
     usort($domains, function($a, $b): int {
-       return strcmp($a->name, $b->name);
+        return strcmp($a->name, $b->name);
     });
 }
 
 function sortDomainsByExpires(array &$domains) {
     usort($domains, function($a, $b): int {
-       return (strtotime($a->expires) < strtotime($b->expires)) ? -1 : 1;
+        return (strtotime($a->expires) < strtotime($b->expires)) ? -1 : 1;
     });
 }
