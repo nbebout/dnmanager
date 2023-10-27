@@ -1,6 +1,7 @@
 <?php
 
-class Domain {
+class Domain
+{
     public $registrar = '';
     public $name = '';
     public $locked = false;

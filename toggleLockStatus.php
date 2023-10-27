@@ -10,4 +10,3 @@ if (isset($clients[$registrar])) {
 }
 
 header("Location: index.php");
-

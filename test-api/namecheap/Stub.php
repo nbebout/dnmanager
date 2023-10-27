@@ -8,5 +8,5 @@ $stubs = [
 ];
 
 if (array_key_exists($command, $stubs)) {
-    include($stubs[$command].'.php');
+    include($stubs[$command] . '.php');
 }

@@ -32,14 +32,16 @@ if (!empty($config['resellerclub']['server'])) {
     $clients['resellerclub'] = $resellerclubClient;
 }
 
-function sortDomainsByName(array &$domains) {
-    usort($domains, function($a, $b): int {
+function sortDomainsByName(array &$domains)
+{
+    usort($domains, function ($a, $b): int {
         return strcmp($a->name, $b->name);
     });
 }
 
-function sortDomainsByExpires(array &$domains) {
-    usort($domains, function($a, $b): int {
+function sortDomainsByExpires(array &$domains)
+{
+    usort($domains, function ($a, $b): int {
         return (strtotime($a->expires) < strtotime($b->expires)) ? -1 : 1;
     });
 }
