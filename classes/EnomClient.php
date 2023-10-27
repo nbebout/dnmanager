@@ -18,6 +18,11 @@ class EnomClient implements RegistrarClient {
         $this->password = $password;
     }
 
+    public function GetRegistrarName(): string
+    {
+        return "eNom";
+    }
+
     // SetApiPath will set the $apiEndpoint variable. This should only be used when testing with a stub server.
     public function SetApiPath(string $path) {
         if ($path[0] !== '/') {

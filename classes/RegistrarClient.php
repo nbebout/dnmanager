@@ -1,6 +1,7 @@
 <?php
 
 interface RegistrarClient {
+    public function GetRegistrarName(): string;
     public function SetApiPath(string $path);
 
     public function GetAllDomains() : array;

@@ -8,8 +8,8 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
 
 $prices = [];
 
-foreach ($clients as $registrar => $client) {
-  $prices[$registrar] = $client->GetAllPrices($config['pricingTLDs']);
+foreach ($clients as $client) {
+  $prices[$client->GetRegistrarName()] = $client->GetAllPrices($config['pricingTLDs']);
 }
 ?>
 <!DOCTYPE html>

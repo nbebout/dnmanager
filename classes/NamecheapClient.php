@@ -19,6 +19,11 @@ class NameCheapClient implements RegistrarClient {
         $this->clientIP = $_SERVER['REMOTE_ADDR'];
     }
 
+    public function GetRegistrarName(): string
+    {
+        return "Namecheap";
+    }
+
     // SetApiPath will set the $apiEndpoint variable. This should only be used when testing with a stub server.
     public function SetApiPath(string $path) {
         if ($path[0] !== '/') {
