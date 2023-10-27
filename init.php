@@ -16,7 +16,7 @@ if (!empty($config['enom']['server'])) {
 
 // Setup Namecheap client
 if (!empty($config['namecheap']['server'])) {
-    $namecheapClient = new NameCheapClient($config['namecheap']['server'], $config['namecheap']['username'], $config['namecheap']['apikey']);
+    $namecheapClient = new NameCheapClient($config['namecheap']);
     if (defined('TESTING') && isset($config['namecheap']['api_path'])) {
         $namecheapClient->SetApiPath($config['namecheap']['api_path']);
     }
@@ -32,14 +32,16 @@ if (!empty($config['resellerclub']['server'])) {
     $clients['resellerclub'] = $resellerclubClient;
 }
 
-function sortDomainsByName(array &$domains) {
-    usort($domains, function($a, $b): int {
-       return strcmp($a->name, $b->name);
+function sortDomainsByName(array &$domains)
+{
+    usort($domains, function ($a, $b): int {
+        return strcmp($a->name, $b->name);
     });
 }
 
-function sortDomainsByExpires(array &$domains) {
-    usort($domains, function($a, $b): int {
-       return (strtotime($a->expires) < strtotime($b->expires)) ? -1 : 1;
+function sortDomainsByExpires(array &$domains)
+{
+    usort($domains, function ($a, $b): int {
+        return (strtotime($a->expires) < strtotime($b->expires)) ? -1 : 1;
     });
 }

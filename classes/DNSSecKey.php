@@ -1,6 +1,7 @@
 <?php
 
-class DNSSecKey {
+class DNSSecKey
+{
     public $keyTag = '';
     public $algorithm = '';
     public $digestType = '';
