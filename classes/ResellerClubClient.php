@@ -5,6 +5,7 @@ class ResellerClubClient implements RegistrarClient {
     private $username;
     private $apikey;
     private $apiEndpoint = "/api/domains/"; // API page to call, must begin with a slash
+    private $customerid;
 
     public function __construct(string $server, string $username, string $apikey, string $customerid) {
         if (empty($server) || empty($username) || empty($apikey) || empty($customerid)) {
@@ -103,7 +104,7 @@ class ResellerClubClient implements RegistrarClient {
           }
         }
     }
-              
+
     // will return string true if domain is locked, false if domain is unlocked
     public function DomainLocked(string $domain) : bool {
             $queryData = $this->baseApiArgs();
@@ -145,7 +146,7 @@ class ResellerClubClient implements RegistrarClient {
         $xml = simplexml_load_file($url);
         $keylist = [];
         foreach ($xml->entry as $entry) {
-          if ($entry->string == 'dnssec') { 
+          if ($entry->string == 'dnssec') {
             foreach ($entry->list->hashtable as $hashtable) {
               $k = new DNSSecKey();
               foreach ($hashtable->entry as $element) {
@@ -303,7 +304,7 @@ class ResellerClubClient implements RegistrarClient {
                 }
               }
             }
-          } 
+          }
 
         return $prices;
     }
