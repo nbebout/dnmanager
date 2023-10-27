@@ -9,8 +9,13 @@ class NameCheapClient implements RegistrarClient
 
     private $apiEndpoint = "/xml.response"; // API page to call, must begin with a slash
 
-    public function __construct(string $server, string $username, string $apiKey)
+    public function __construct(array $options)
     {
+        $server = $options['server'];
+        $username = $options['username'];
+        $apiKey = $options['apikey'];
+        $clientIP = $options['clientip'] ?? $_SERVER['REMOTE_ADDR'];
+
         if (empty($server) || empty($username) || empty($apiKey)) {
             throw new Exception('Server, username, and api key required for enom api');
         }
@@ -18,7 +23,7 @@ class NameCheapClient implements RegistrarClient
         $this->server = trim($server, '/');
         $this->username = $username;
         $this->apiKey = $apiKey;
-        $this->clientIP = $_SERVER['REMOTE_ADDR'];
+        $this->clientIP = $clientIP;
     }
 
     public function GetRegistrarName(): string

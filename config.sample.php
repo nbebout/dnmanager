@@ -9,7 +9,8 @@ $config['enom'] = [
 $config['namecheap'] = [
     'server' => '',
     'username' => '',
-    'apikey' => ''
+    'apikey' => '',
+    'clientip' => ''
 ];
 
 $config['resellerclub'] = [

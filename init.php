@@ -16,7 +16,7 @@ if (!empty($config['enom']['server'])) {
 
 // Setup Namecheap client
 if (!empty($config['namecheap']['server'])) {
-    $namecheapClient = new NameCheapClient($config['namecheap']['server'], $config['namecheap']['username'], $config['namecheap']['apikey']);
+    $namecheapClient = new NameCheapClient($config['namecheap']);
     if (defined('TESTING') && isset($config['namecheap']['api_path'])) {
         $namecheapClient->SetApiPath($config['namecheap']['api_path']);
     }
