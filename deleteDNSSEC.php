@@ -1,13 +1,16 @@
 <?php
 require_once('init.php');
 
-$sld = $_GET['sld'];
-$tld = $_GET['tld'];
-$keytag = $_GET['keytag'];
-$algorithm = $_GET['algorithm'];
-$digesttype = $_GET['digesttype'];
-$digest = $_GET['digest'];
-$registrar = $_REQUEST['registrar'];
+requirePostRequest();
+requireValidCsrfToken();
+
+$sld = $_POST['sld'];
+$tld = $_POST['tld'];
+$keytag = $_POST['keytag'];
+$algorithm = $_POST['algorithm'];
+$digesttype = $_POST['digesttype'];
+$digest = $_POST['digest'];
+$registrar = $_POST['registrar'];
 
 if (isset($clients[$registrar])) {
     $nslist = $clients[$registrar]->DeleteDnsSec($sld, $tld, $keytag, intval($algorithm), $digesttype, $digest);

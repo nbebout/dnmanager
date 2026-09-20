@@ -1,9 +1,11 @@
 <?php
 require_once('init.php');
 
-// $_REQUEST contains $_POST, $_GET, and $_COOKIE
-$domain = $_REQUEST['domain'];
-$registrar = $_REQUEST['registrar'];
+requirePostRequest();
+requireValidCsrfToken();
+
+$domain = $_POST['domain'];
+$registrar = $_POST['registrar'];
 
 if (isset($clients[$registrar])) {
   $clients[$registrar]->ToggleLocked($domain);

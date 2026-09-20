@@ -44,6 +44,21 @@ setlocale(LC_MONETARY, 'en_US.UTF-8');
     a:hover {
       color: black;
     }
+
+    .inline-action-form {
+      display: inline;
+      margin: 0;
+    }
+
+    .link-button {
+      background: none;
+      border: none;
+      color: black;
+      cursor: pointer;
+      font: inherit;
+      padding: 0;
+      text-decoration: underline;
+    }
   </style>
 </head>
 
@@ -70,9 +85,12 @@ setlocale(LC_MONETARY, 'en_US.UTF-8');
         <td><?= h(money_format('%.2n', $enomPrices[$tld]['renew'])) ?></td>
         <td>
           <?php if ($clients[$registrarKey]->SupportsToggleLocked()) : ?>
-            <a href="<?= buildUrl('toggleLockStatus.php', ['domain' => $domain->name, 'registrar' => $registrarKey]) ?>">
-              <?= $domain->locked ? 'Yes' : 'No' ?>
-            </a>
+            <form action="toggleLockStatus.php" method="post" class="inline-action-form">
+              <input type="hidden" name="domain" value="<?= h($domain->name) ?>">
+              <input type="hidden" name="registrar" value="<?= h($registrarKey) ?>">
+              <?= csrfInput() ?>
+              <button type="submit" class="link-button"><?= $domain->locked ? 'Yes' : 'No' ?></button>
+            </form>
           <?php else : ?>
             <?= $domain->locked ? 'Yes' : 'No' ?>
           <?php endif; ?>

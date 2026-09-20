@@ -7,6 +7,7 @@ $tld = $_REQUEST['tld'];
 $registrar = $_REQUEST['registrar'];
 
 if (isset($_POST['submit'])) {
+  requireValidCsrfToken();
   if ($registrar == 'enom') {
     $clients['enom']->ModifyNS($sld, $tld, $_POST['ns']);
   } else if ($registrar == 'namecheap') {
@@ -64,6 +65,7 @@ if (isset($clients[$registrar])) {
     <input type="hidden" name="sld" value="<?= h($sld) ?>">
     <input type="hidden" name="tld" value="<?= h($tld) ?>">
     <input type="hidden" name="registrar" value="<?= h($registrar) ?>">
+    <?= csrfInput() ?>
 
     <table id="ns-form-list">
       <?php $i = 1;
