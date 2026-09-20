@@ -46,7 +46,7 @@ class ResellerClubClient implements RegistrarClient
   // commonApiArgs takes the baseApiArgs and adds sld and tld to the list of params.
   private function commonApiArgs(string $command, string $sld, string $tld): array
   {
-    $data = $this->baseApiArgs($command);
+    $data = $this->baseApiArgs();
     $data['sld'] = urlencode($sld);
     $data['tld'] = urlencode($tld);
     return $data;

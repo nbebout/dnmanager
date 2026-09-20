@@ -18,6 +18,7 @@ switch ($_REQUEST['sortBy']) {
     break;
 }
 setlocale(LC_MONETARY, 'en_US.UTF-8');
+$fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
 
 ?>
 <!DOCTYPE html>
@@ -82,7 +83,7 @@ setlocale(LC_MONETARY, 'en_US.UTF-8');
         <td><?= h($domain->name) ?></td>
         <td><?= h($domain->registrar) ?></td>
         <td><?= h(explode(' ', $domain->expires, 2)[0]) ?></td>
-        <td><?= h(money_format('%.2n', $enomPrices[$tld]['renew'])) ?></td>
+        <td><?= h($fmt->formatCurrency($enomPrices[$tld]['renew'], 'USD')) ?></td>
         <td>
           <?php if ($clients[$registrarKey]->SupportsToggleLocked()) : ?>
             <form action="toggleLockStatus.php" method="post" class="inline-action-form">
