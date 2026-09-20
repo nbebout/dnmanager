@@ -3,6 +3,10 @@ $config = [];
 require_once('config.php');
 require_once('classes/init.php');
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $clients = [];
 
 // Setup enom client
@@ -44,4 +48,51 @@ function sortDomainsByExpires(array &$domains)
     usort($domains, function ($a, $b): int {
         return (strtotime($a->expires) < strtotime($b->expires)) ? -1 : 1;
     });
+}
+
+function h($value): string
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function buildUrl(string $path, array $params = []): string
+{
+    if (empty($params)) {
+        return h($path);
+    }
+
+    return h($path . '?' . http_build_query($params));
+}
+
+function csrfToken(): string
+{
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['csrf_token'];
+}
+
+function csrfInput(): string
+{
+    return '<input type="hidden" name="csrf_token" value="' . h(csrfToken()) . '">';
+}
+
+function requirePostRequest(): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+        http_response_code(405);
+        exit('Method Not Allowed');
+    }
+}
+
+function requireValidCsrfToken(): void
+{
+    $submittedToken = $_POST['csrf_token'] ?? '';
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+
+    if (!is_string($submittedToken) || !is_string($sessionToken) || !hash_equals($sessionToken, $submittedToken)) {
+        http_response_code(403);
+        exit('Invalid CSRF token');
+    }
 }

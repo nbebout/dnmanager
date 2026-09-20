@@ -7,6 +7,7 @@ $tld = $_REQUEST['tld'];
 $registrar = $_REQUEST['registrar'];
 
 if (isset($_POST['submit'])) {
+  requireValidCsrfToken();
   // URL for API request
   $keytag = $_POST['keytag'];
   $algorithm = $_POST['algorithm'];
@@ -47,6 +48,21 @@ if (isset($clients[$registrar])) {
     a:hover {
       color: black;
     }
+
+    .inline-action-form {
+      display: inline;
+      margin: 0;
+    }
+
+    .link-button {
+      background: none;
+      border: none;
+      color: black;
+      cursor: pointer;
+      font: inherit;
+      padding: 0;
+      text-decoration: underline;
+    }
   </style>
 </head>
 
@@ -54,7 +70,7 @@ if (isset($clients[$registrar])) {
   <h1>Domain Name Manager</h1>
 
   <div style="display: none;" id="add-record-form">
-    <h3>Add DNSSEC record for <?php echo "$sld.$tld"; ?></h3>
+    <h3>Add DNSSEC record for <?= h("$sld.$tld") ?></h3>
 
     <form action="manageDNSSEC.php" method="post">
       <table>
@@ -76,14 +92,15 @@ if (isset($clients[$registrar])) {
         </tr>
       </table>
       <br />
-      <input type="hidden" name="sld" value="<?= $sld ?>">
-      <input type="hidden" name="tld" value="<?= $tld ?>">
-      <input type="hidden" name="registrar" value="<?= $registrar ?>">
+      <input type="hidden" name="sld" value="<?= h($sld) ?>">
+      <input type="hidden" name="tld" value="<?= h($tld) ?>">
+      <input type="hidden" name="registrar" value="<?= h($registrar) ?>">
+      <?= csrfInput() ?>
       <input type="submit" name="submit" value="Add">
     </form>
   </div>
 
-  <h3>DNSSEC records for <?= "$sld.$tld" ?></h3>
+  <h3>DNSSEC records for <?= h("$sld.$tld") ?></h3>
   <table>
     <tr>
       <th>Key Tag</th>
@@ -95,11 +112,23 @@ if (isset($clients[$registrar])) {
 
     <?php foreach ($keylist as $key) : ?>
       <tr>
-        <td><?= $key->keyTag ?></td>
-        <td><?= $key->algorithm ?></td>
-        <td><?= $key->digestType ?></td>
-        <td><?= $key->digest ?></td>
-        <td><a href="deleteDNSSEC.php?sld=<?= urlencode($sld) ?>&tld=<?= urlencode($tld) ?>&keytag=<?= urlencode($key->keyTag) ?>&algorithm=<?= urlencode($key->algorithm) ?>&digesttype=<?= urlencode($key->digestType) ?>&digest=<?= urlencode($key->digest) ?>&registrar=<?= urlencode($registrar) ?>">Delete</a></td>
+        <td><?= h($key->keyTag) ?></td>
+        <td><?= h($key->algorithm) ?></td>
+        <td><?= h($key->digestType) ?></td>
+        <td><?= h($key->digest) ?></td>
+        <td>
+          <form action="deleteDNSSEC.php" method="post" class="inline-action-form">
+            <input type="hidden" name="sld" value="<?= h($sld) ?>">
+            <input type="hidden" name="tld" value="<?= h($tld) ?>">
+            <input type="hidden" name="keytag" value="<?= h($key->keyTag) ?>">
+            <input type="hidden" name="algorithm" value="<?= h($key->algorithm) ?>">
+            <input type="hidden" name="digesttype" value="<?= h($key->digestType) ?>">
+            <input type="hidden" name="digest" value="<?= h($key->digest) ?>">
+            <input type="hidden" name="registrar" value="<?= h($registrar) ?>">
+            <?= csrfInput() ?>
+            <button type="submit" class="link-button">Delete</button>
+          </form>
+        </td>
       </tr>
     <?php endforeach; ?>
   </table>
