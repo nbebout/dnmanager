@@ -39,19 +39,19 @@ foreach ($clients as $client) {
       <th>TLD</th>
 
       <?php foreach ($prices as $registrar => $_price_data) : ?>
-        <th><?= $registrar ?> Register</th>
-        <th><?= $registrar ?> Renew</th>
-        <th><?= $registrar ?> Transfer</th>
+        <th><?= h($registrar) ?> Register</th>
+        <th><?= h($registrar) ?> Renew</th>
+        <th><?= h($registrar) ?> Transfer</th>
       <?php endforeach; ?>
     </tr>
 
     <?php foreach ($config['pricingTLDs'] as $tld) : ?>
       <tr>
-        <td><?= $tld; ?></td>
+        <td><?= h($tld); ?></td>
         <?php foreach ($prices as $price_data) : ?>
-          <td><?= $fmt->formatCurrency($price_data[$tld]['new'], "USD"); ?></td>
-          <td><?= $fmt->formatCurrency($price_data[$tld]['renew'], "USD"); ?></td>
-          <td><?= $fmt->formatCurrency($price_data[$tld]['transfer'], "USD"); ?></td>
+          <td><?= h($fmt->formatCurrency($price_data[$tld]['new'], "USD")); ?></td>
+          <td><?= h($fmt->formatCurrency($price_data[$tld]['renew'], "USD")); ?></td>
+          <td><?= h($fmt->formatCurrency($price_data[$tld]['transfer'], "USD")); ?></td>
         <?php endforeach; ?>
       </tr>
     <?php endforeach; ?>

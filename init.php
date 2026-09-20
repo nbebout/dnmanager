@@ -45,3 +45,17 @@ function sortDomainsByExpires(array &$domains)
         return (strtotime($a->expires) < strtotime($b->expires)) ? -1 : 1;
     });
 }
+
+function h($value): string
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function buildUrl(string $path, array $params = []): string
+{
+    if (empty($params)) {
+        return h($path);
+    }
+
+    return h($path . '?' . http_build_query($params));
+}

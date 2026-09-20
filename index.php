@@ -62,31 +62,32 @@ switch ($_REQUEST['sortBy']) {
     </tr>
     <?php foreach ($domains as $domain) : ?>
       <?php $split = explode('.', $domain->name); ?>
-      <tr>
-        <td><?= $domain->name ?></td>
-        <td><?= $domain->registrar ?></td>
-        <td><?= explode(' ', $domain->expires, 2)[0] ?></td>
-        <td>
-          <?php if ($clients[strtolower($domain->registrar)]->SupportsToggleLocked()) : ?>
-            <a href="toggleLockStatus.php?domain=<?= $domain->name ?>&registrar=<?= strtolower($domain->registrar); ?>">
-              <?= $domain->locked ? 'Yes' : 'No' ?>
-            </a>
-          <?php else : ?>
-            <?= $domain->locked ? 'Yes' : 'No' ?>
-          <?php endif; ?>
-        </td>
-        <td>
-          <?php if ($clients[strtolower($domain->registrar)]->SupportsDnsSec()) : ?>
-            <a href="manageDNSSEC.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain->registrar); ?>">Edit</a>
-          <?php endif; ?>
-        </td>
-        <td>
-          <?php if ($clients[strtolower($domain->registrar)]->SupportsNameservers()) : ?>
-            <a href="manageDNS.php?sld=<?= $split[0] ?>&tld=<?= $split[1] ?>&registrar=<?= strtolower($domain->registrar); ?>">Edit</a>
-          <?php endif; ?>
-        </td>
-      </tr>
-    <?php endforeach; ?>
+          <?php $registrarKey = strtolower($domain->registrar); ?>
+          <tr>
+            <td><?= h($domain->name) ?></td>
+            <td><?= h($domain->registrar) ?></td>
+            <td><?= h(explode(' ', $domain->expires, 2)[0]) ?></td>
+            <td>
+              <?php if ($clients[$registrarKey]->SupportsToggleLocked()) : ?>
+                <a href="<?= buildUrl('toggleLockStatus.php', ['domain' => $domain->name, 'registrar' => $registrarKey]) ?>">
+                  <?= $domain->locked ? 'Yes' : 'No' ?>
+                </a>
+              <?php else : ?>
+                <?= $domain->locked ? 'Yes' : 'No' ?>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if ($clients[$registrarKey]->SupportsDnsSec()) : ?>
+                <a href="<?= buildUrl('manageDNSSEC.php', ['sld' => $split[0], 'tld' => $split[1], 'registrar' => $registrarKey]) ?>">Edit</a>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if ($clients[$registrarKey]->SupportsNameservers()) : ?>
+                <a href="<?= buildUrl('manageDNS.php', ['sld' => $split[0], 'tld' => $split[1], 'registrar' => $registrarKey]) ?>">Edit</a>
+              <?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
 </body>
 
 </html>

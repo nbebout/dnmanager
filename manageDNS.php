@@ -58,19 +58,19 @@ if (isset($clients[$registrar])) {
 <body>
   <h1>Domain Name Manager</h1>
 
-  <h3>Nameservers for <?= "$sld.$tld" ?></h3>
+  <h3>Nameservers for <?= h("$sld.$tld") ?></h3>
 
   <form action="manageDNS.php" method="POST" style="display: none;" id="add-record-form">
-    <input type="hidden" name="sld" value="<?= $sld ?>">
-    <input type="hidden" name="tld" value="<?= $tld ?>">
-    <input type="hidden" name="registrar" value="<?= $registrar ?>">
+    <input type="hidden" name="sld" value="<?= h($sld) ?>">
+    <input type="hidden" name="tld" value="<?= h($tld) ?>">
+    <input type="hidden" name="registrar" value="<?= h($registrar) ?>">
 
     <table id="ns-form-list">
       <?php $i = 1;
       foreach ($nslist as $ns) : ?>
         <tr>
           <td>NS<?= $i ?>:</td>
-          <td><input type="text" name="ns[]" value="<?= $ns ?>"></td>
+          <td><input type="text" name="ns[]" value="<?= h($ns) ?>"></td>
         </tr>
       <?php $i++;
       endforeach; ?>
@@ -86,7 +86,7 @@ if (isset($clients[$registrar])) {
       foreach ($nslist as $ns) : ?>
         <tr>
           <td>NS<?= $i ?>:</td>
-          <td><?= $ns ?></td>
+          <td><?= h($ns) ?></td>
         </tr>
       <?php $i++;
       endforeach; ?>

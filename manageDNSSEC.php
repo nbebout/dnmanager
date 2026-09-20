@@ -54,7 +54,7 @@ if (isset($clients[$registrar])) {
   <h1>Domain Name Manager</h1>
 
   <div style="display: none;" id="add-record-form">
-    <h3>Add DNSSEC record for <?php echo "$sld.$tld"; ?></h3>
+    <h3>Add DNSSEC record for <?= h("$sld.$tld") ?></h3>
 
     <form action="manageDNSSEC.php" method="post">
       <table>
@@ -76,14 +76,14 @@ if (isset($clients[$registrar])) {
         </tr>
       </table>
       <br />
-      <input type="hidden" name="sld" value="<?= $sld ?>">
-      <input type="hidden" name="tld" value="<?= $tld ?>">
-      <input type="hidden" name="registrar" value="<?= $registrar ?>">
+      <input type="hidden" name="sld" value="<?= h($sld) ?>">
+      <input type="hidden" name="tld" value="<?= h($tld) ?>">
+      <input type="hidden" name="registrar" value="<?= h($registrar) ?>">
       <input type="submit" name="submit" value="Add">
     </form>
   </div>
 
-  <h3>DNSSEC records for <?= "$sld.$tld" ?></h3>
+  <h3>DNSSEC records for <?= h("$sld.$tld") ?></h3>
   <table>
     <tr>
       <th>Key Tag</th>
@@ -95,11 +95,11 @@ if (isset($clients[$registrar])) {
 
     <?php foreach ($keylist as $key) : ?>
       <tr>
-        <td><?= $key->keyTag ?></td>
-        <td><?= $key->algorithm ?></td>
-        <td><?= $key->digestType ?></td>
-        <td><?= $key->digest ?></td>
-        <td><a href="deleteDNSSEC.php?sld=<?= urlencode($sld) ?>&tld=<?= urlencode($tld) ?>&keytag=<?= urlencode($key->keyTag) ?>&algorithm=<?= urlencode($key->algorithm) ?>&digesttype=<?= urlencode($key->digestType) ?>&digest=<?= urlencode($key->digest) ?>&registrar=<?= urlencode($registrar) ?>">Delete</a></td>
+        <td><?= h($key->keyTag) ?></td>
+        <td><?= h($key->algorithm) ?></td>
+        <td><?= h($key->digestType) ?></td>
+        <td><?= h($key->digest) ?></td>
+        <td><a href="<?= buildUrl('deleteDNSSEC.php', ['sld' => $sld, 'tld' => $tld, 'keytag' => $key->keyTag, 'algorithm' => $key->algorithm, 'digesttype' => $key->digestType, 'digest' => $key->digest, 'registrar' => $registrar]) ?>">Delete</a></td>
       </tr>
     <?php endforeach; ?>
   </table>
