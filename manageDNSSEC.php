@@ -1,7 +1,7 @@
 <?php
 require_once('init.php');
 
-// $_REQUEST contains $_POST, $_GET, and $_COOKIE
+// Use POST values for updates and GET values for read-only navigation.
 $request = isset($_POST['submit']) ? $_POST : $_GET;
 $sld = requireValidDomainPart($request['sld'] ?? '', 'sld');
 $tld = requireValidTld($request['tld'] ?? '');
@@ -24,10 +24,7 @@ if (isset($_POST['submit'])) {
 }
 
 
-$keylist = [];
-if (isset($clients[$registrar])) {
-  $keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
-}
+$keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
 ?>
 <!DOCTYPE html>
 <html>
