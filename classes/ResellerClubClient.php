@@ -47,8 +47,8 @@ class ResellerClubClient implements RegistrarClient
   private function commonApiArgs(string $command, string $sld, string $tld): array
   {
     $data = $this->baseApiArgs();
-    $data['sld'] = urlencode($sld);
-    $data['tld'] = urlencode($tld);
+    $data['sld'] = $sld;
+    $data['tld'] = $tld;
     return $data;
   }
 
@@ -111,7 +111,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData = $this->baseApiArgs();
     $queryData['no-of-records'] = 10;
     $queryData['page-no'] = 1;
-    $queryData['domain-name'] = urlencode($domain);
+    $queryData['domain-name'] = $domain;
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
     $xml = simplexml_load_file($url);
@@ -215,13 +215,13 @@ class ResellerClubClient implements RegistrarClient
     $queryData = $this->baseApiArgs();
     $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
     $queryData['attr-name1'] = 'keytag';
-    $queryData['attr-value1'] = urlencode($keytag);
+    $queryData['attr-value1'] = $keytag;
     $queryData['attr-name2'] = 'algorithm';
-    $queryData['attr-value2'] = urlencode($alg);
+    $queryData['attr-value2'] = $alg;
     $queryData['attr-name3'] = 'digesttype';
-    $queryData['attr-value3'] = urlencode($digesttype);
+    $queryData['attr-value3'] = $digesttype;
     $queryData['attr-name4'] = 'digest';
-    $queryData['attr-value4'] = urlencode($digest);
+    $queryData['attr-value4'] = $digest;
 
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}$command.xml?$qs";
@@ -293,11 +293,13 @@ class ResellerClubClient implements RegistrarClient
       array_splice($nameservers, 12);
     }
 
-    // $queryData['ns'] = implode(",", $nameservers);
     $qs = http_build_query($queryData);
+    $nsQuery = implode('&', array_map(function (string $nameserver): string {
+      return http_build_query(['ns' => $nameserver]);
+    }, $nameservers));
     $url = "{$this->server}{$this->apiEndpoint}modify-ns.xml?$qs";
-    foreach ($nameservers as $nameserver) {
-      $url .= "&ns=$nameserver";
+    if ($nsQuery !== '') {
+      $url .= "&$nsQuery";
     }
 
     $curl = curl_init($url);

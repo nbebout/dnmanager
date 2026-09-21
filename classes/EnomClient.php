@@ -49,8 +49,8 @@ class EnomClient implements RegistrarClient
     private function commonApiArgs(string $command, string $sld, string $tld): array
     {
         $data = $this->baseApiArgs($command);
-        $data['sld'] = urlencode($sld);
-        $data['tld'] = urlencode($tld);
+        $data['sld'] = $sld;
+        $data['tld'] = $tld;
         return $data;
     }
 
@@ -79,8 +79,8 @@ class EnomClient implements RegistrarClient
     // will return string true if domain is locked, false if domain is unlocked
     public function DomainLocked(string $domain): bool
     {
-        $split = explode('.', $domain);
-        $queryData2 = $this->commonApiArgs('GetRegLock', $split[0], $split[1]);
+        [$sld, $tld] = splitDomain($domain);
+        $queryData2 = $this->commonApiArgs('GetRegLock', $sld, $tld);
         $qs2 = http_build_query($queryData2);
         $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
         $xml2 = simplexml_load_file($url2);
@@ -90,8 +90,8 @@ class EnomClient implements RegistrarClient
     // Will toggle the current locked status for the given domain
     public function ToggleLocked(string $domain): bool
     {
-        $split = explode('.', $domain);
-        $queryData = $this->commonApiArgs('SetRegLock', $split[0], $split[1]);
+        [$sld, $tld] = splitDomain($domain);
+        $queryData = $this->commonApiArgs('SetRegLock', $sld, $tld);
         $queryData['UnlockRegistrar'] = $this->DomainLocked($domain);
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
@@ -136,10 +136,10 @@ class EnomClient implements RegistrarClient
     private function commonDnsSec(string $command, string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest): SimpleXMLElement
     {
         $queryData = $this->commonApiArgs($command, $sld, $tld);
-        $queryData['alg'] = urlencode($alg);
-        $queryData['digest'] = urlencode($digest);
-        $queryData['digesttype'] = urlencode($digesttype);
-        $queryData['keytag'] = urlencode($keytag);
+        $queryData['alg'] = $alg;
+        $queryData['digest'] = $digest;
+        $queryData['digesttype'] = $digesttype;
+        $queryData['keytag'] = $keytag;
 
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
@@ -178,7 +178,7 @@ class EnomClient implements RegistrarClient
             if ($i >= 13) break; // Enforce max of 12 servers. Ignore 13 and beyond if given.
             if (trim($ns) === '') continue;
 
-            $queryData['ns' . $i] = urlencode($ns);
+            $queryData['ns' . $i] = $ns;
             $i++;
         }
 
@@ -204,7 +204,7 @@ class EnomClient implements RegistrarClient
     public function GetResellerPrice(string $tld): array
     {
         $queryData = $this->baseApiArgs('PE_GetResellerPrice');
-        $queryData['tld'] = urlencode($tld);
+        $queryData['tld'] = $tld;
 
         $queryData['ProductType'] = $this->pricingType('new');
         $qs = http_build_query($queryData);
@@ -237,7 +237,7 @@ class EnomClient implements RegistrarClient
     public function GetRenewalPrice(string $tld): array
     {
         $queryData = $this->baseApiArgs('PE_GetResellerPrice');
-        $queryData['tld'] = urlencode($tld);
+        $queryData['tld'] = $tld;
 
         $queryData['ProductType'] = $this->pricingType('renew');
         $qs = http_build_query($queryData);

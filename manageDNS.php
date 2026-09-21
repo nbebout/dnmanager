@@ -2,19 +2,18 @@
 require_once('init.php');
 
 // $_REQUEST contains $_POST, $_GET, and $_COOKIE
-$sld = $_REQUEST['sld'];
-$tld = $_REQUEST['tld'];
-$registrar = $_REQUEST['registrar'];
+$request = isset($_POST['submit']) ? $_POST : $_GET;
+$sld = requireValidDomainPart($request['sld'] ?? '', 'sld');
+$tld = requireValidTld($request['tld'] ?? '');
+$registrar = requireValidRegistrar($request['registrar'] ?? '');
 
 if (isset($_POST['submit'])) {
   requireValidCsrfToken();
-  if ($registrar == 'enom') {
-    $clients['enom']->ModifyNS($sld, $tld, $_POST['ns']);
-  } else if ($registrar == 'namecheap') {
-    $clients['namecheap']->ModifyNS($sld, $tld, $_POST['ns']);
-  } else if ($registrar == 'resellerclub') {
-    $clients['resellerclub']->ModifyNS($sld, $tld, $_POST['ns']);
+  if (!$clients[$registrar]->SupportsNameservers()) {
+    rejectInvalidInput('Registrar does not support nameserver changes');
   }
+  $nameservers = requireValidNameservers($_POST['ns'] ?? null);
+  $clients[$registrar]->ModifyNS($sld, $tld, $nameservers);
 }
 
 $nslist = [];

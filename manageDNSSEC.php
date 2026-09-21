@@ -2,21 +2,25 @@
 require_once('init.php');
 
 // $_REQUEST contains $_POST, $_GET, and $_COOKIE
-$sld = $_REQUEST['sld'];
-$tld = $_REQUEST['tld'];
-$registrar = $_REQUEST['registrar'];
+$request = isset($_POST['submit']) ? $_POST : $_GET;
+$sld = requireValidDomainPart($request['sld'] ?? '', 'sld');
+$tld = requireValidTld($request['tld'] ?? '');
+$registrar = requireValidRegistrar($request['registrar'] ?? '');
 
 if (isset($_POST['submit'])) {
   requireValidCsrfToken();
   // URL for API request
-  $keytag = $_POST['keytag'];
-  $algorithm = $_POST['algorithm'];
-  $digesttype = $_POST['digesttype'];
-  $digest = str_replace(' ', '', $_POST['digest']);
+  [$keytag, $algorithm, $digesttype, $digest] = requireValidDnssecInput(
+    $_POST['keytag'] ?? null,
+    $_POST['algorithm'] ?? null,
+    $_POST['digesttype'] ?? null,
+    isset($_POST['digest']) && is_string($_POST['digest']) ? str_replace(' ', '', $_POST['digest']) : null
+  );
 
-  if (isset($clients[$registrar])) {
-    $keylist = $clients[$registrar]->AddDnsSec($sld, $tld, $keytag, intval($algorithm), $digesttype, $digest);
+  if (!$clients[$registrar]->SupportsDnsSec()) {
+    rejectInvalidInput('Registrar does not support DNSSEC');
   }
+  $clients[$registrar]->AddDnsSec($sld, $tld, $keytag, $algorithm, $digesttype, $digest);
 }
 
 

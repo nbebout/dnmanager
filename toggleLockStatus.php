@@ -4,11 +4,13 @@ require_once('init.php');
 requirePostRequest();
 requireValidCsrfToken();
 
-$domain = $_POST['domain'];
-$registrar = $_POST['registrar'];
+$domain = requireValidDomain($_POST['domain'] ?? null);
+$registrar = requireValidRegistrar($_POST['registrar'] ?? '');
 
-if (isset($clients[$registrar])) {
-  $clients[$registrar]->ToggleLocked($domain);
+if (!$clients[$registrar]->SupportsToggleLocked()) {
+    rejectInvalidInput('Registrar does not support lock changes');
 }
+
+$clients[$registrar]->ToggleLocked($domain);
 
 header("Location: index.php");

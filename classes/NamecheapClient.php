@@ -56,8 +56,8 @@ class NameCheapClient implements RegistrarClient
     private function commonApiArgs(string $command, string $sld, string $tld): array
     {
         $data = $this->baseApiArgs($command);
-        $data['SLD'] = urlencode($sld);
-        $data['TLD'] = urlencode($tld);
+        $data['SLD'] = $sld;
+        $data['TLD'] = $tld;
         return $data;
     }
 
@@ -87,7 +87,7 @@ class NameCheapClient implements RegistrarClient
     public function DomainLocked(string $domain): bool
     {
         $queryData2 = $this->baseApiArgs('namecheap.domains.getRegistrarLock');
-        $queryData2['DomainName'] = urlencode($domain);
+        $queryData2['DomainName'] = $domain;
         $qs2 = http_build_query($queryData2);
         $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
         $xml2 = simplexml_load_file($url2);
@@ -97,7 +97,6 @@ class NameCheapClient implements RegistrarClient
     // Will toggle the current locked status for the given domain
     public function ToggleLocked(string $domain): bool
     {
-        $split = explode('.', $domain);
         $queryData = $this->baseApiArgs('namecheap.domains.setRegistrarLock');
         $queryData['DomainName'] = $domain;
         $queryData['LockAction'] = ($this->DomainLocked($domain) === true ? "UNLOCK" : "LOCK");
@@ -189,7 +188,7 @@ class NameCheapClient implements RegistrarClient
     {
         $prices = [];
         $queryData = $this->baseApiArgs('namecheap.users.getPricing');
-        $queryData['ProductName'] = urlencode($tld);
+        $queryData['ProductName'] = $tld;
         $queryData['ProductType'] = 'DOMAIN';
 
         $qs = http_build_query($queryData);

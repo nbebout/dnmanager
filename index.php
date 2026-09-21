@@ -76,7 +76,7 @@ switch ($_REQUEST['sortBy']) {
       <th>Nameservers</th>
     </tr>
     <?php foreach ($domains as $domain) : ?>
-      <?php $split = explode('.', $domain->name); ?>
+      <?php [$sld, $tld] = splitDomain($domain->name); ?>
           <?php $registrarKey = strtolower($domain->registrar); ?>
           <tr>
             <td><?= h($domain->name) ?></td>
@@ -96,12 +96,12 @@ switch ($_REQUEST['sortBy']) {
             </td>
             <td>
               <?php if ($clients[$registrarKey]->SupportsDnsSec()) : ?>
-                <a href="<?= buildUrl('manageDNSSEC.php', ['sld' => $split[0], 'tld' => $split[1], 'registrar' => $registrarKey]) ?>">Edit</a>
+                <a href="<?= buildUrl('manageDNSSEC.php', ['sld' => $sld, 'tld' => $tld, 'registrar' => $registrarKey]) ?>">Edit</a>
               <?php endif; ?>
             </td>
             <td>
               <?php if ($clients[$registrarKey]->SupportsNameservers()) : ?>
-                <a href="<?= buildUrl('manageDNS.php', ['sld' => $split[0], 'tld' => $split[1], 'registrar' => $registrarKey]) ?>">Edit</a>
+                <a href="<?= buildUrl('manageDNS.php', ['sld' => $sld, 'tld' => $tld, 'registrar' => $registrarKey]) ?>">Edit</a>
               <?php endif; ?>
             </td>
           </tr>
