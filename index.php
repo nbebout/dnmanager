@@ -23,10 +23,12 @@ switch ($_REQUEST['sortBy']) {
 
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Domain Name Manager</title>
+  <link rel="stylesheet" href="styles.css">
 
   <style>
     table,
@@ -66,15 +68,19 @@ switch ($_REQUEST['sortBy']) {
 
 <body>
   <h1>Domain Name Manager</h1>
-  <table>
-    <tr>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
       <th><a href="index.php?sortBy=domain">Domain Name</a></th>
       <th>Registrar</th>
       <th><a href="index.php?sortBy=expires">Expiration Date</a></th>
       <th>Locked</th>
       <th>DNSSEC</th>
-      <th>Nameservers</th>
-    </tr>
+          <th>Nameservers</th>
+        </tr>
+      </thead>
+      <tbody>
     <?php foreach ($domains as $domain) : ?>
       <?php [$sld, $tld] = splitDomain($domain->name); ?>
           <?php $registrarKey = strtolower($domain->registrar); ?>
@@ -106,6 +112,9 @@ switch ($_REQUEST['sortBy']) {
             </td>
           </tr>
         <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
 </body>
 
 </html>

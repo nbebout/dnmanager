@@ -62,7 +62,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData['customer-id'] = $this->customerid;
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
-    $xml = simplexml_load_file($url);
+    $xml = httpGetXml($url);
     foreach ($xml->entry as $entry) {
       if ($entry->hashtable) {
         foreach ($entry->hashtable->entry as $element) {
@@ -79,7 +79,7 @@ class ResellerClubClient implements RegistrarClient
       $queryData['options'] = 'OrderDetails';
       $qs = http_build_query($queryData);
       $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
-      $xml = simplexml_load_file($url);
+      $xml = httpGetXml($url);
       $d = new Domain();
       $d->registrar = 'ResellerClub';
       $hasEndTime = false;
@@ -114,7 +114,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData['domain-name'] = $domain;
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
-    $xml = simplexml_load_file($url);
+    $xml = httpGetXml($url);
     foreach ($xml->entry as $entry) {
       if ($entry->hashtable) {
         foreach ($entry->hashtable->entry as $element) {
@@ -133,7 +133,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData['order-id'] = $this->GetOrderID($domain);
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}locks.xml?$qs";
-    $xml = simplexml_load_file($url);
+    $xml = httpGetXml($url);
     return ($xml->count() >= 1);
   }
 
@@ -145,12 +145,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData['order-id'] = $this->GetOrderID($domain);
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}$command.xml?$qs";
-    $curl = curl_init($url);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_POST, true);
-    curl_setopt($curl, CURLOPT_POSTFIELDS, []);
-    $curl_response = curl_exec($curl);
-    $xml = simplexml_load_string($curl_response);
+    $xml = httpPostXml($url);
     foreach ($xml->entry as $entry) {
       if ($entry->string[0] == 'actionstatus') {
         return $entry->string[1] == 'Success';
@@ -167,7 +162,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData['options'] = 'DNSSECDetails';
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
-    $xml = simplexml_load_file($url);
+    $xml = httpGetXml($url);
     $keylist = [];
     foreach ($xml->entry as $entry) {
       if ($entry->string == 'dnssec') {
@@ -225,12 +220,7 @@ class ResellerClubClient implements RegistrarClient
 
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}$command.xml?$qs";
-    $curl = curl_init($url);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_POST, true);
-    curl_setopt($curl, CURLOPT_POSTFIELDS, []);
-    $curl_response = curl_exec($curl);
-    $xml = simplexml_load_string($curl_response);
+    $xml = httpPostXml($url);
 
     return $xml;
   }
@@ -265,7 +255,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData['options'] = 'NsDetails';
     $qs = http_build_query($queryData);
     $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
-    $xml = simplexml_load_file($url);
+    $xml = httpGetXml($url);
     $nameservers = array();
     foreach ($xml->entry as $entry) {
       if (substr($entry->string[0], 0, 2) == 'ns') {
@@ -302,12 +292,7 @@ class ResellerClubClient implements RegistrarClient
       $url .= "&$nsQuery";
     }
 
-    $curl = curl_init($url);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_POST, true);
-    curl_setopt($curl, CURLOPT_POSTFIELDS, []);
-    $curl_response = curl_exec($curl);
-    $xml = simplexml_load_string($curl_response);
+    $xml = httpPostXml($url);
     foreach ($xml->entry as $entry) {
       if ($entry->string[0] == 'actionstatus') {
         return $entry->string[1] == 'Success';
@@ -328,7 +313,10 @@ class ResellerClubClient implements RegistrarClient
     $queryData = $this->baseApiArgs();
     $qs = http_build_query($queryData);
     $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
-    $xml = simplexml_load_file($url);
+    $xml = httpGetXml($url);
+    if ($xml === false) {
+      return []; // request timed out/failed; caller should treat missing keys as unknown pricing
+    }
     $tldtolookfor = "dot$tld";
     if ($tld == 'biz') {
       $tldtolookfor = 'dombiz';
@@ -390,8 +378,11 @@ class ResellerClubClient implements RegistrarClient
     $queryData = $this->baseApiArgs();
     $qs = http_build_query($queryData);
     $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
-    $xml = simplexml_load_file($url);
+    $xml = httpGetXml($url);
     $prices = array();
+    if ($xml === false) {
+      return $prices; // request timed out/failed; caller should treat missing keys as unknown pricing
+    }
     foreach ($tldarray as $tld) {
       foreach ($xml->entry as $entry) {
         if ($entry->string == $this->WhatToSearchFor($tld)) {

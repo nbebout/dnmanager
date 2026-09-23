@@ -60,7 +60,7 @@ class EnomClient implements RegistrarClient
         $queryData = $this->baseApiArgs('GetAllDomains');
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $xml = simplexml_load_file($url);
+        $xml = httpGetXml($url);
         $domainlistXML = $xml->GetAllDomains->DomainDetail;
 
         $domainlist = [];
@@ -83,7 +83,7 @@ class EnomClient implements RegistrarClient
         $queryData2 = $this->commonApiArgs('GetRegLock', $sld, $tld);
         $qs2 = http_build_query($queryData2);
         $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
-        $xml2 = simplexml_load_file($url2);
+        $xml2 = httpGetXml($url2);
         return (string)($xml2->{'reg-lock'}) === '1';
     }
 
@@ -95,7 +95,7 @@ class EnomClient implements RegistrarClient
         $queryData['UnlockRegistrar'] = $this->DomainLocked($domain);
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return simplexml_load_file($url)->RRPCode == '200';
+        return httpGetXml($url)->RRPCode == '200';
     }
 
     // GetDnsSec returns DNS Sec information about the given domain.
@@ -104,7 +104,7 @@ class EnomClient implements RegistrarClient
         $queryData = $this->commonApiArgs('GetDnsSec', $sld, $tld);
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $xml = simplexml_load_file($url);
+        $xml = httpGetXml($url);
         $keylistXML = $xml->DnsSecData->KeyData;
 
         $keylist = [];
@@ -143,7 +143,7 @@ class EnomClient implements RegistrarClient
 
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return simplexml_load_file($url);
+        return httpGetXml($url);
     }
 
     // AddDnsSec will add a new DNS Sec record to the given domain.
@@ -164,7 +164,7 @@ class EnomClient implements RegistrarClient
         $queryData = $this->commonApiArgs('GetDns', $sld, $tld);
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return (array)(simplexml_load_file($url)->dns);
+        return (array)(httpGetXml($url)->dns);
     }
 
     // ModifyNS updates the nameservers for a given domain. $nameservers should be an array of strings with the nameserver DNS entries.
@@ -184,7 +184,7 @@ class EnomClient implements RegistrarClient
 
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return simplexml_load_file($url)->RRPCode == '200';
+        return httpGetXml($url)->RRPCode == '200';
     }
 
     // resellterTypeToInt takes a string identifier and returns enom's int parameter for the type of reseller product
@@ -200,6 +200,17 @@ class EnomClient implements RegistrarClient
         }
     }
 
+    // priceFromXml safely pulls a price out of a PE_GetResellerPrice response,
+    // returning null (rather than fataling) if the request timed out/failed
+    // or the response didn't contain a price.
+    private function priceFromXml($xml): ?float
+    {
+        if ($xml === false || !isset($xml->productprice->price)) {
+            return null;
+        }
+        return (float)$xml->productprice->price;
+    }
+
     // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
     public function GetResellerPrice(string $tld): array
     {
@@ -209,17 +220,17 @@ class EnomClient implements RegistrarClient
         $queryData['ProductType'] = $this->pricingType('new');
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['new'] = (float)(simplexml_load_file($url)->productprice->price);
+        $prices['new'] = $this->priceFromXml(httpGetXml($url));
 
         $queryData['ProductType'] = $this->pricingType('renew');
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['renew'] = (float)(simplexml_load_file($url)->productprice->price);
+        $prices['renew'] = $this->priceFromXml(httpGetXml($url));
 
         $queryData['ProductType'] = $this->pricingType('transfer');
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['transfer'] = (float)(simplexml_load_file($url)->productprice->price);
+        $prices['transfer'] = $this->priceFromXml(httpGetXml($url));
 
         return $prices;
     }
@@ -242,7 +253,7 @@ class EnomClient implements RegistrarClient
         $queryData['ProductType'] = $this->pricingType('renew');
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['renew'] = (float)(simplexml_load_file($url)->productprice->price);
+        $prices['renew'] = $this->priceFromXml(httpGetXml($url));
 
         return $prices;
     }

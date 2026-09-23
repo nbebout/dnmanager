@@ -27,10 +27,12 @@ if (isset($_POST['submit'])) {
 $keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Domain Name Manager</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
     table,
     th,
@@ -102,15 +104,18 @@ $keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
   </div>
 
   <h3>DNSSEC records for <?= h("$sld.$tld") ?></h3>
-  <table>
-    <tr>
-      <th>Key Tag</th>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Key Tag</th>
       <th>Algorithm</th>
       <th>Digest Type</th>
       <th>Digest</th>
-      <th>Delete</th>
-    </tr>
-
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
     <?php foreach ($keylist as $key) : ?>
       <tr>
         <td><?= h($key->keyTag) ?></td>
@@ -132,18 +137,20 @@ $keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
         </td>
       </tr>
     <?php endforeach; ?>
-  </table>
+      </tbody>
+    </table>
+  </div>
   <br>
 
   <a href="#" id="add-record-link">Add DNSSEC record</a><br />
   <br />
   <a href="index.php">Return to Domain List</a>
-</body>
-
 <script type="text/javascript">
-  document.getElementById('add-record-link').addEventListener('click', function() {
+  document.getElementById('add-record-link').addEventListener('click', function(event) {
+    event.preventDefault();
     document.getElementById('add-record-form').style.display = 'block';
   });
 </script>
+</body>
 
 </html>

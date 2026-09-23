@@ -67,7 +67,7 @@ class NameCheapClient implements RegistrarClient
         $queryData = $this->baseApiArgs('namecheap.domains.getList');
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $xml = simplexml_load_file($url);
+        $xml = httpGetXml($url);
         $domainlistXML = $xml->CommandResponse->DomainGetListResult->Domain;
         $domainlist = [];
         foreach ($domainlistXML as $domain) {
@@ -90,7 +90,7 @@ class NameCheapClient implements RegistrarClient
         $queryData2['DomainName'] = $domain;
         $qs2 = http_build_query($queryData2);
         $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
-        $xml2 = simplexml_load_file($url2);
+        $xml2 = httpGetXml($url2);
         return (string)($xml2->CommandResponse->DomainGetRegistrarLockResult->attributes()->RegistrarLockStatus) === 'true';
     }
 
@@ -102,7 +102,7 @@ class NameCheapClient implements RegistrarClient
         $queryData['LockAction'] = ($this->DomainLocked($domain) === true ? "UNLOCK" : "LOCK");
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $numerrors = simplexml_load_file($url)->Errors->Error->count();
+        $numerrors = httpGetXml($url)->Errors->Error->count();
         return !$numerrors;
     }
 
@@ -143,7 +143,7 @@ class NameCheapClient implements RegistrarClient
         $queryData = $this->commonApiArgs('namecheap.domains.dns.getList', $sld, $tld);
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return (array)(simplexml_load_file($url)->CommandResponse->DomainDNSGetListResult->Nameserver);
+        return (array)(httpGetXml($url)->CommandResponse->DomainDNSGetListResult->Nameserver);
     }
 
     // ModifyNS updates the nameservers for a given domain. $nameservers should be an array of strings with the nameserver DNS entries.
@@ -167,7 +167,7 @@ class NameCheapClient implements RegistrarClient
         $queryData['Nameservers'] = implode(",", $nameservers);
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return simplexml_load_file($url)->Errors->count == 0;
+        return httpGetXml($url)->Errors->count == 0;
     }
 
     // pricingType takes a string identifier and returns Namecheap's string parameter for the type of reseller product
@@ -199,7 +199,10 @@ class NameCheapClient implements RegistrarClient
             $prices['transfer'] = 999.99;
             return $prices;
         }
-        $respxml = simplexml_load_file($url);
+        $respxml = httpGetXml($url);
+        if ($respxml === false) {
+            return $prices; // request timed out/failed; caller should treat missing keys as unknown pricing
+        }
         $resultxml = $respxml->CommandResponse->UserGetPricingResult->ProductType;
 
         foreach ($resultxml->ProductCategory as $productCategory) {

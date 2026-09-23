@@ -19,10 +19,12 @@ if (isset($_POST['submit'])) {
 $nslist = $clients[$registrar]->GetDns($sld, $tld);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Domain Name Manager</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
     table,
     th,
@@ -64,6 +66,7 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
     <?= csrfInput() ?>
 
     <table id="ns-form-list">
+      <tbody>
       <?php $i = 1;
       foreach ($nslist as $ns) : ?>
         <tr>
@@ -72,14 +75,16 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
         </tr>
       <?php $i++;
       endforeach; ?>
+      </tbody>
     </table>
     <br>
     <button type="button" id="add-nameserver">Add Server</button>
     <button name="submit">Update</button>
   </form>
 
-  <section id="ns-table">
+  <section id="ns-table" class="table-wrapper">
     <table>
+      <tbody>
       <?php $i = 1;
       foreach ($nslist as $ns) : ?>
         <tr>
@@ -88,6 +93,7 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
         </tr>
       <?php $i++;
       endforeach; ?>
+      </tbody>
     </table>
 
     <br>
@@ -95,13 +101,13 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
   </section>
   <br>
   <a href="index.php">Return to Domain List</a>
-</body>
-
 <script type="text/javascript">
   const nsForm = document.getElementById('add-record-form');
   const staticListTable = document.getElementById('ns-table');
   const toggleLink = document.getElementById('add-record-link');
-  toggleLink.addEventListener('click', function() {
+  const nsFormList = document.getElementById('ns-form-list');
+  toggleLink.addEventListener('click', function(event) {
+    event.preventDefault();
     nsForm.style.display = 'block';
     staticListTable.style.display = 'none';
 
@@ -112,7 +118,6 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
 
   let numOfServers = <?= count($nslist) ?>;
   const maxNSServers = 12;
-  const nsFormList = document.getElementById('ns-form-list');
   const addNSButton = document.getElementById('add-nameserver');
   addNSButton.addEventListener('click', function() {
     if (numOfServers >= maxNSServers) return; // Only allow 12 servers
@@ -126,5 +131,6 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
     nsInputs[nsInputs.length - 1].focus();
   });
 </script>
+</body>
 
 </html>

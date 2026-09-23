@@ -6,9 +6,19 @@ foreach ($clients as $client) {
   $clientDomains = $client->GetAllDomains();
   $domains = array_merge($domains, $clientDomains);
 }
-$enomPrices = $clients['enom']->GetAllRenewalPrices($config['pricingTLDs']);
 
-switch ($_REQUEST['sortBy']) {
+// Cache eNom's renewal pricing for 15 minutes rather than fetching it live on
+// every page load - GetAllRenewalPrices() makes one outbound API call per
+// configured TLD, which is slow and, combined across pages, a common cause
+// of a fronting proxy/load balancer returning a gateway timeout.
+$enomPrices = [];
+if (isset($clients['enom'])) {
+  $enomPrices = cacheRemember('renewal_prices_enom_' . md5(implode(',', $config['pricingTLDs'])), 900, function () use ($clients, $config) {
+    return $clients['enom']->GetAllRenewalPrices($config['pricingTLDs']);
+  });
+}
+
+switch ($_REQUEST['sortBy'] ?? 'expires') {
   case "domain":
     sortDomainsByName($domains);
     break;
@@ -17,15 +27,16 @@ switch ($_REQUEST['sortBy']) {
     sortDomainsByExpires($domains);
     break;
 }
-setlocale(LC_MONETARY, 'en_US.UTF-8');
 $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
 
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Domain Name Manager</title>
+  <link rel="stylesheet" href="styles.css">
 
   <style>
     table,
@@ -65,16 +76,20 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
 
 <body>
   <h1>Domain Name Manager</h1>
-  <table>
-    <tr>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
       <th><a href="renewinfo.php?sortBy=domain">Domain Name</a></th>
       <th>Registrar</th>
       <th><a href="renewinfo.php?sortBy=expires">Expiration Date</a></th>
       <th>Renewal Cost</th>
       <th>Locked</th>
       <th>DNSSEC</th>
-      <th>Nameservers</th>
-    </tr>
+          <th>Nameservers</th>
+        </tr>
+      </thead>
+      <tbody>
     <?php foreach ($domains as $domain) : ?>
       <?php [$sld, $tld] = splitDomain($domain->name); ?>
       <?php $registrarKey = strtolower($domain->registrar); ?>
@@ -82,7 +97,7 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
         <td><?= h($domain->name) ?></td>
         <td><?= h($domain->registrar) ?></td>
         <td><?= h(explode(' ', $domain->expires, 2)[0]) ?></td>
-        <td><?= h($fmt->formatCurrency($enomPrices[$tld]['renew'], 'USD')) ?></td>
+        <td><?= isset($enomPrices[$tld]['renew']) ? h($fmt->formatCurrency($enomPrices[$tld]['renew'], 'USD')) : 'N/A' ?></td>
         <td>
           <?php if ($clients[$registrarKey]->SupportsToggleLocked()) : ?>
             <form action="toggleLockStatus.php" method="post" class="inline-action-form">
@@ -107,6 +122,9 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
         </td>
       </tr>
     <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
 </body>
 
 </html>
