@@ -82,7 +82,7 @@ class CloudflareClient implements RegistrarClient
                 $d->registrar = 'Cloudflare';
                 $d->name = $domain['name'] ?? '';
                 $d->locked = !empty($domain['locked']);
-                $d->expires = isset($domain['expires_at']) ? date('Y-m-d', strtotime($domain['expires_at'])) : '';
+                $d->expires = isset($domain['expires_at']) ? date('m/d/Y', strtotime($domain['expires_at'])) : '';
                 $d->autorenew = !empty($domain['auto_renew']);
                 $domainlist[] = $d;
             }
