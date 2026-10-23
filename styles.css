@@ -3,13 +3,13 @@ body {
   color: #1f2933;
   background: #fff;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.35;
 }
 
 h1 {
   margin: 0 0 12px;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
 }
 
 h3 {
@@ -44,7 +44,7 @@ table {
 th,
 td {
   border: 1px solid #e4e7eb;
-  padding: 3px 8px;
+  padding: 4px 9px;
   text-align: left;
   white-space: nowrap;
 }
