@@ -59,6 +59,14 @@ function sortDomainsByExpires(array &$domains)
     });
 }
 
+// formatDate normalizes the registrar-specific expiration date strings to
+// Y-m-d for display. Unparseable values are returned unchanged.
+function formatDate($value): string
+{
+    $timestamp = strtotime((string)$value);
+    return $timestamp === false ? (string)$value : date('Y-m-d', $timestamp);
+}
+
 function h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

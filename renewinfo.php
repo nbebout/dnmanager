@@ -96,7 +96,7 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
       <tr>
         <td><?= h($domain->name) ?></td>
         <td><?= h($domain->registrar) ?></td>
-        <td><?= h(explode(' ', $domain->expires, 2)[0]) ?></td>
+        <td><?= h(formatDate($domain->expires)) ?></td>
         <td><?= isset($enomPrices[$tld]['renew']) ? h($fmt->formatCurrency($enomPrices[$tld]['renew'], 'USD')) : 'N/A' ?></td>
         <td>
           <?php if ($clients[$registrarKey]->SupportsToggleLocked()) : ?>

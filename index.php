@@ -87,7 +87,7 @@ switch ($_REQUEST['sortBy']) {
           <tr>
             <td><?= h($domain->name) ?></td>
             <td><?= h($domain->registrar) ?></td>
-            <td><?= h(explode(' ', $domain->expires, 2)[0]) ?></td>
+            <td><?= h(formatDate($domain->expires)) ?></td>
             <td>
               <?php if ($clients[$registrarKey]->SupportsToggleLocked()) : ?>
                 <form action="toggleLockStatus.php" method="post" class="inline-action-form">
