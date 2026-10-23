@@ -69,7 +69,24 @@ function getAllDomains(array $clients): array
             $errors[] = $client->GetRegistrarName() . ': ' . $e->getMessage();
         }
     }
-    return [$domains, $errors];
+    return [hideTransferredToCloudflare($domains), $errors];
+}
+
+// hideTransferredToCloudflare drops domains that are also registered at
+// Cloudflare from the other registrars' lists. A domain transferred to
+// Cloudflare stays in the old registrar's account until it expires there, so
+// without this it would be listed twice.
+function hideTransferredToCloudflare(array $domains): array
+{
+    $atCloudflare = [];
+    foreach ($domains as $domain) {
+        if (strtolower($domain->registrar) === 'cloudflare') {
+            $atCloudflare[strtolower($domain->name)] = true;
+        }
+    }
+    return array_values(array_filter($domains, function ($domain) use ($atCloudflare): bool {
+        return strtolower($domain->registrar) === 'cloudflare' || !isset($atCloudflare[strtolower($domain->name)]);
+    }));
 }
 
 // getDnsSecStatuses looks up the DNSSEC status of the domains at registrars
