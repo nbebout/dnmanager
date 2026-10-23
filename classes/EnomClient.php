@@ -200,12 +200,15 @@ class EnomClient implements RegistrarClient
         }
     }
 
-    // priceFromXml safely pulls a price out of a PE_GetResellerPrice response,
-    // returning null (rather than fataling) if the request timed out/failed
-    // or the response didn't contain a price.
+    // priceFromXml pulls a price out of a PE_GetResellerPrice response, returning
+    // null if the response didn't contain one (e.g. a TLD eNom doesn't sell).
+    // Throws if the request itself failed, so a failure isn't cached as "no price".
     private function priceFromXml($xml): ?float
     {
-        if ($xml === false || !isset($xml->productprice->price)) {
+        if ($xml === false) {
+            throw new RuntimeException('eNom pricing request failed');
+        }
+        if (!isset($xml->productprice->price)) {
             return null;
         }
         return (float)$xml->productprice->price;

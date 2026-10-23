@@ -6,9 +6,16 @@ sort($config['pricingTLDs']);
 $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
 
 $prices = [];
+$errors = [];
 
+// A registrar whose pricing can't be loaded still gets its columns, showing N/A.
 foreach ($clients as $registrarKey => $client) {
-  $prices[$client->GetRegistrarName()] = getRegistrarPrices($registrarKey, $client, $config['pricingTLDs']);
+  try {
+    $prices[$client->GetRegistrarName()] = getRegistrarPrices($registrarKey, $client, $config['pricingTLDs']);
+  } catch (Throwable $e) {
+    $prices[$client->GetRegistrarName()] = [];
+    $errors[] = $client->GetRegistrarName() . ': failed to load prices: ' . $e->getMessage();
+  }
 }
 ?>
 <!DOCTYPE html>
@@ -35,6 +42,9 @@ foreach ($clients as $registrarKey => $client) {
 
 <body>
   <h1>Domain Pricing</h1>
+  <?php foreach ($errors as $error) : ?>
+    <p class="error"><?= h($error) ?></p>
+  <?php endforeach; ?>
   <div class="table-wrapper">
     <table>
       <thead>

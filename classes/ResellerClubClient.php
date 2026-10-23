@@ -85,6 +85,8 @@ class ResellerClubClient implements RegistrarClient
 
   // GetAllDomains will return information on all domains owned by $this->username.
   // The search results are paged, so pages are fetched until the reported total is reached.
+  // Each search result normally carries the domain name, expiry, and lock flags; an order
+  // missing any of them falls back to a details lookup.
   public function GetAllDomains(): array
   {
     $orders = array();
@@ -97,48 +99,68 @@ class ResellerClubClient implements RegistrarClient
       $pageCount = 0;
       foreach ($xml->entry as $entry) {
         if ($entry->hashtable) {
+          $fields = [];
           foreach ($entry->hashtable->entry as $element) {
-            if ($element->string[0] == 'orders.orderid') {
-              $orders[] = (int)$element->string[1];
-              $pageCount++;
-            }
+            $fields[(string)$element->string[0]] = (string)$element->string[1];
+          }
+          if (isset($fields['orders.orderid'])) {
+            $orders[] = $fields;
+            $pageCount++;
           }
         }
       }
       $total = (int)$this->entryValue($xml, 'recsindb');
       $queryData['page-no']++;
     } while ($pageCount > 0 && count($orders) < $total);
+
     $domainlist = [];
-    foreach ($orders as $order) {
-      $queryData = $this->baseApiArgs();
-      $queryData['order-id'] = $order;
-      $queryData['options'] = 'OrderDetails';
-      $xml = $this->apiCall('details.xml', $queryData);
-      $d = new Domain();
-      $d->registrar = 'ResellerClub';
-      $hasEndTime = false;
-      foreach ($xml->entry as $element) {
-        if ($element->string[0] == 'domainname') {
-          $d->name = (string)$element->string[1];
-        }
-        if ($element->string[0] == 'endtime') {
-          // endtime is a Unix timestamp; keep it in UTC so the server's timezone can't shift the date.
-          $d->expires = gmdate('c', (int)$element->string[1]);
-          $hasEndTime = true;
-        }
-        if ($element->string[0] == 'orderstatus') {
-          foreach ($element->vector as $vector) {
-            if ($vector->string == 'transferlock' || $vector->string == 'resellerlock') {
-              $d->locked = true;
-            }
-          }
-        }
+    foreach ($orders as $fields) {
+      if (isset($fields['entity.description'], $fields['orders.endtime'], $fields['orders.transferlock'], $fields['orders.resellerlock'])) {
+        $d = new Domain();
+        $d->registrar = 'ResellerClub';
+        $d->name = $fields['entity.description'];
+        // endtime is a Unix timestamp; keep it in UTC so the server's timezone can't shift the date.
+        $d->expires = gmdate('c', (int)$fields['orders.endtime']);
+        $d->locked = ($fields['orders.transferlock'] === 'true' || $fields['orders.resellerlock'] === 'true');
+        $d->autorenew = (($fields['orders.autorenew'] ?? '') === 'true');
+      } else {
+        $d = $this->domainFromDetails((int)$fields['orders.orderid']);
       }
-      if ($hasEndTime) {
+      if ($d !== null) {
         $domainlist[] = $d;
       }
     }
     return $domainlist;
+  }
+
+  // domainFromDetails looks up a domain order's details. Returns null if the order has no expiry.
+  private function domainFromDetails(int $order): ?Domain
+  {
+    $queryData = $this->baseApiArgs();
+    $queryData['order-id'] = $order;
+    $queryData['options'] = 'OrderDetails';
+    $xml = $this->apiCall('details.xml', $queryData);
+    $d = new Domain();
+    $d->registrar = 'ResellerClub';
+    $hasEndTime = false;
+    foreach ($xml->entry as $element) {
+      if ($element->string[0] == 'domainname') {
+        $d->name = (string)$element->string[1];
+      }
+      if ($element->string[0] == 'endtime') {
+        // endtime is a Unix timestamp; keep it in UTC so the server's timezone can't shift the date.
+        $d->expires = gmdate('c', (int)$element->string[1]);
+        $hasEndTime = true;
+      }
+      if ($element->string[0] == 'orderstatus') {
+        foreach ($element->vector as $vector) {
+          if ($vector->string == 'transferlock' || $vector->string == 'resellerlock') {
+            $d->locked = true;
+          }
+        }
+      }
+    }
+    return $hasEndTime ? $d : null;
   }
 
   private function GetOrderID(string $domain): int
@@ -319,7 +341,7 @@ class ResellerClubClient implements RegistrarClient
     $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
     $xml = httpGetXml($url);
     if ($xml === false) {
-      return []; // request timed out/failed; caller should treat missing keys as unknown pricing
+      throw new RuntimeException('ResellerClub pricing request failed');
     }
     $tldtolookfor = "dot$tld";
     if ($tld == 'biz') {
@@ -383,10 +405,10 @@ class ResellerClubClient implements RegistrarClient
     $qs = http_build_query($queryData);
     $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
     $xml = httpGetXml($url);
-    $prices = array();
     if ($xml === false) {
-      return $prices; // request timed out/failed; caller should treat missing keys as unknown pricing
+      throw new RuntimeException('ResellerClub pricing request failed');
     }
+    $prices = array();
     foreach ($tldarray as $tld) {
       foreach ($xml->entry as $entry) {
         if ($entry->string == $this->WhatToSearchFor($tld)) {

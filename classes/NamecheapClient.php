@@ -218,7 +218,7 @@ class NameCheapClient implements RegistrarClient
         }
         $respxml = httpGetXml($url);
         if ($respxml === false) {
-            return $prices; // request timed out/failed; caller should treat missing keys as unknown pricing
+            throw new RuntimeException("Namecheap pricing request failed ($tld)");
         }
         $resultxml = $respxml->CommandResponse->UserGetPricingResult->ProductType;
 

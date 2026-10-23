@@ -63,7 +63,8 @@ function getAllDomains(array $clients): array
 }
 
 // getRegistrarPrices returns a registrar's register, renew, and transfer prices
-// for each TLD in $tlds, cached for 15 minutes. Pricing rarely changes and
+// for each TLD in $tlds, cached for 15 minutes. Throws if the prices couldn't
+// be fetched and there's no earlier cached copy to fall back on. Pricing rarely changes and
 // fetching it live can mean dozens of sequential outbound API calls per page
 // load - caching is what keeps the pricing pages from timing out a fronting
 // proxy/load balancer under normal use.
