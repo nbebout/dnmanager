@@ -1,11 +1,8 @@
 <?php
 require_once('init.php');
 
-$domains = [];
-foreach ($clients as $client) {
-  $clientDomains = $client->GetAllDomains();
-  $domains = array_merge($domains, $clientDomains);
-}
+[$domains, $errors] = getAllDomains($clients);
+$errors = array_merge(takeFlashErrors(), $errors);
 
 if (!isset($_REQUEST['sortBy'])) {
   $_REQUEST['sortBy'] = 'domain';
@@ -68,6 +65,9 @@ switch ($_REQUEST['sortBy']) {
 
 <body>
   <h1>Domain Name Manager</h1>
+  <?php foreach ($errors as $error) : ?>
+    <p class="error"><?= h($error) ?></p>
+  <?php endforeach; ?>
   <div class="table-wrapper">
     <table>
       <thead>

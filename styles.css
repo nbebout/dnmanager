@@ -101,3 +101,8 @@ input[type="submit"] {
     padding: 0.4rem;
   }
 }
+
+.error {
+  color: #b00020;
+  font-weight: bold;
+}

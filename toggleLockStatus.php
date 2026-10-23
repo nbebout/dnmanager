@@ -11,6 +11,12 @@ if (!$clients[$registrar]->SupportsToggleLocked()) {
     rejectInvalidInput('Registrar does not support lock changes');
 }
 
-$clients[$registrar]->ToggleLocked($domain);
+try {
+    if (!$clients[$registrar]->ToggleLocked($domain)) {
+        setFlashError("Failed to change the lock status of $domain");
+    }
+} catch (Throwable $e) {
+    setFlashError("Failed to change the lock status of $domain: " . $e->getMessage());
+}
 
 header("Location: index.php");

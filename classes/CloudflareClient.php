@@ -41,37 +41,46 @@ class CloudflareClient implements RegistrarClient
 
     // apiRequest calls the given registrar API path (relative to the account's
     // registrar/domains endpoint) and returns the decoded response.
-    // Returns null if the request failed or Cloudflare reported an error.
-    private function apiRequest(string $method, string $path = '', array $query = [], $body = null)
+    // Throws a RuntimeException if the request failed or Cloudflare reported an error.
+    private function apiRequest(string $method, string $path = '', array $query = [], $body = null): array
     {
         $url = "{$this->server}{$this->apiEndpoint}/accounts/" . rawurlencode($this->accountId) . "/registrar/domains{$path}";
         if (!empty($query)) {
             $url .= '?' . http_build_query($query);
         }
         $response = httpRequestJson($method, $url, ["Authorization: Bearer {$this->apiToken}"], $body);
-        if ($response === false || empty($response['success'])) {
-            return null;
+        if ($response === false) {
+            throw new RuntimeException('Cloudflare API request failed');
+        }
+        if (empty($response['success'])) {
+            $messages = array_column($response['errors'] ?? [], 'message');
+            throw new RuntimeException('Cloudflare API error: ' . (implode('; ', $messages) ?: 'unknown error'));
         }
         return $response;
     }
 
-    // GetDomain returns the raw Cloudflare registrar information for a single domain, or null on failure.
-    public function GetDomain(string $domain)
+    // GetDomain returns the raw Cloudflare registrar information for a single domain.
+    public function GetDomain(string $domain): array
     {
         $response = $this->apiRequest('GET', '/' . rawurlencode($domain));
-        return $response['result'] ?? null;
+        if (!is_array($response['result'] ?? null)) {
+            throw new RuntimeException("Cloudflare returned no data for $domain");
+        }
+        return $response['result'];
     }
 
     // GetAllDomains will return information on all domains registered in the Cloudflare account.
     // The registrar API's page numbers start at 0, so paging is driven by the page number and
-    // total_count the API reports back rather than by assuming a starting page.
+    // total_count the API reports back rather than by assuming a starting page. Throws rather
+    // than returning a partial list if any page fails.
     public function GetAllDomains(): array
     {
         $domainlist = [];
+        $totalCount = 0;
         $query = ['per_page' => 50];
         do {
             $response = $this->apiRequest('GET', '', $query);
-            if ($response === null || empty($response['result'])) {
+            if (empty($response['result'])) {
                 break;
             }
             foreach ($response['result'] as $domain) {
@@ -86,25 +95,24 @@ class CloudflareClient implements RegistrarClient
             $totalCount = (int)($response['result_info']['total_count'] ?? 0);
             $query['page'] = (int)($response['result_info']['page'] ?? 0) + 1;
         } while (count($domainlist) < $totalCount);
+        if (count($domainlist) < $totalCount) {
+            throw new RuntimeException('Cloudflare returned ' . count($domainlist) . " of $totalCount domains");
+        }
         return $domainlist;
     }
 
-    // DomainLocked returns true if the domain is locked, false if it is unlocked.
+    // DomainLocked returns true if the domain is locked, false if it is unlocked. Throws if the
+    // lock status could not be retrieved.
     public function DomainLocked(string $domain): bool
     {
-        $result = $this->GetDomain($domain);
-        return !empty($result['locked']);
+        return !empty($this->GetDomain($domain)['locked']);
     }
 
-    // ToggleLocked will toggle the current locked status for the given domain.
+    // ToggleLocked will toggle the current locked status for the given domain. Throws on failure.
     public function ToggleLocked(string $domain): bool
     {
-        $result = $this->GetDomain($domain);
-        if ($result === null) {
-            return false;
-        }
-        $response = $this->apiRequest('PUT', '/' . rawurlencode($domain), [], ['locked' => empty($result['locked'])]);
-        return $response !== null;
+        $this->apiRequest('PUT', '/' . rawurlencode($domain), [], ['locked' => !$this->DomainLocked($domain)]);
+        return true;
     }
 
     public function SupportsDnsSec(): bool

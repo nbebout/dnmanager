@@ -1,11 +1,7 @@
 <?php
 require_once('init.php');
 
-$domains = [];
-foreach ($clients as $client) {
-  $clientDomains = $client->GetAllDomains();
-  $domains = array_merge($domains, $clientDomains);
-}
+[$domains, $errors] = getAllDomains($clients);
 
 // Cache eNom's renewal pricing for 15 minutes rather than fetching it live on
 // every page load - GetAllRenewalPrices() makes one outbound API call per
@@ -76,6 +72,9 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
 
 <body>
   <h1>Domain Name Manager</h1>
+  <?php foreach ($errors as $error) : ?>
+    <p class="error"><?= h($error) ?></p>
+  <?php endforeach; ?>
   <div class="table-wrapper">
     <table>
       <thead>

@@ -45,6 +45,37 @@ if (!empty($config['cloudflare']['account-id']) && !empty($config['cloudflare'][
     $clients['cloudflare'] = $cloudflareClient;
 }
 
+// getAllDomains fetches the domains from every registrar. A registrar that
+// fails doesn't stop the others from being listed; its error is returned
+// alongside the domains so the page can show it.
+function getAllDomains(array $clients): array
+{
+    $domains = [];
+    $errors = [];
+    foreach ($clients as $client) {
+        try {
+            $domains = array_merge($domains, $client->GetAllDomains());
+        } catch (Throwable $e) {
+            $errors[] = $client->GetRegistrarName() . ': ' . $e->getMessage();
+        }
+    }
+    return [$domains, $errors];
+}
+
+// setFlashError stores an error message to show on the next page load.
+function setFlashError(string $message): void
+{
+    $_SESSION['flash_errors'][] = $message;
+}
+
+// takeFlashErrors returns and clears any stored error messages.
+function takeFlashErrors(): array
+{
+    $errors = $_SESSION['flash_errors'] ?? [];
+    unset($_SESSION['flash_errors']);
+    return $errors;
+}
+
 function sortDomainsByName(array &$domains)
 {
     usort($domains, function ($a, $b): int {
