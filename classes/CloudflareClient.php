@@ -15,12 +15,12 @@ class CloudflareClient implements RegistrarClient
 
     public function __construct(array $options)
     {
-        $server = $options['server'] ?? 'https://api.cloudflare.com';
+        $server = !empty($options['server']) ? $options['server'] : 'https://api.cloudflare.com';
         $accountId = $options['account-id'] ?? '';
         $apiToken = $options['apitoken'] ?? '';
 
         if (empty($server) || empty($accountId) || empty($apiToken)) {
-            throw new Exception('Server, account id, and api token required for cloudflare api');
+            throw new Exception('Account id and api token required for cloudflare api');
         }
 
         $this->server = trim($server, '/');
@@ -66,16 +66,18 @@ class CloudflareClient implements RegistrarClient
     }
 
     // GetAllDomains will return information on all domains registered in the Cloudflare account.
+    // The registrar API's page numbers start at 0, so paging is driven by the page number and
+    // total_count the API reports back rather than by assuming a starting page.
     public function GetAllDomains(): array
     {
         $domainlist = [];
-        $page = 1;
+        $query = ['per_page' => 50];
         do {
-            $response = $this->apiRequest('GET', '', ['page' => $page, 'per_page' => 50]);
-            if ($response === null) {
+            $response = $this->apiRequest('GET', '', $query);
+            if ($response === null || empty($response['result'])) {
                 break;
             }
-            foreach ($response['result'] ?? [] as $domain) {
+            foreach ($response['result'] as $domain) {
                 $d = new Domain();
                 $d->registrar = 'Cloudflare';
                 $d->name = $domain['name'] ?? '';
@@ -84,9 +86,9 @@ class CloudflareClient implements RegistrarClient
                 $d->autorenew = !empty($domain['auto_renew']);
                 $domainlist[] = $d;
             }
-            $totalPages = (int)($response['result_info']['total_pages'] ?? 1);
-            $page++;
-        } while ($page <= $totalPages);
+            $totalCount = (int)($response['result_info']['total_count'] ?? 0);
+            $query['page'] = (int)($response['result_info']['page'] ?? 0) + 1;
+        } while (count($domainlist) < $totalCount);
         return $domainlist;
     }
 

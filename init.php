@@ -37,7 +37,7 @@ if (!empty($config['resellerclub']['server'])) {
 }
 
 // Setup Cloudflare client
-if (!empty($config['cloudflare']['server'])) {
+if (!empty($config['cloudflare']['account-id'])) {
     $cloudflareClient = new CloudflareClient($config['cloudflare']);
     if (defined('TESTING') && isset($config['cloudflare']['api_path'])) {
         $cloudflareClient->SetApiPath($config['cloudflare']['api_path']);

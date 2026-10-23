@@ -11,7 +11,7 @@ $domains = [
 
 if (preg_match('#^/accounts/[^/]+/registrar/domains/?$#', $path)) {
     $result = $domains;
-    $resultInfo = ['page' => 1, 'per_page' => 50, 'count' => count($domains), 'total_count' => count($domains), 'total_pages' => 1];
+    $resultInfo = ['page' => 0, 'per_page' => 50, 'count' => count($domains), 'total_count' => count($domains), 'total_pages' => 1];
     echo json_encode(['success' => true, 'errors' => [], 'messages' => [], 'result' => $result, 'result_info' => $resultInfo]);
 } elseif (preg_match('#^/accounts/[^/]+/registrar/domains/([^/]+)$#', $path, $matches)) {
     foreach ($domains as $domain) {

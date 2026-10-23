@@ -21,7 +21,7 @@ $config['resellerclub'] = [
 ];
 
 $config['cloudflare'] = [
-    'server' => '', // https://api.cloudflare.com
+    'server' => '', // Optional, defaults to https://api.cloudflare.com
     'account-id' => '',
     'apitoken' => '' // API token with Account > Registrar: Domains permissions
 ];
