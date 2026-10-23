@@ -97,12 +97,12 @@ class EnomClient implements RegistrarClient
         return (string)($xml->{'reg-lock'}) === '1';
     }
 
-    // Will toggle the current locked status for the given domain
-    public function ToggleLocked(string $domain): bool
+    // SetLocked locks or unlocks the given domain.
+    public function SetLocked(string $domain, bool $locked): bool
     {
         [$sld, $tld] = splitDomain($domain);
         $queryData = $this->commonApiArgs('SetRegLock', $sld, $tld);
-        $queryData['UnlockRegistrar'] = $this->DomainLocked($domain);
+        $queryData['UnlockRegistrar'] = $locked ? 0 : 1;
         return $this->apiGet($queryData)->RRPCode == '200';
     }
 

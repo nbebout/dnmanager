@@ -108,10 +108,10 @@ class CloudflareClient implements RegistrarClient
         return !empty($this->GetDomain($domain)['locked']);
     }
 
-    // ToggleLocked will toggle the current locked status for the given domain. Throws on failure.
-    public function ToggleLocked(string $domain): bool
+    // SetLocked locks or unlocks the given domain. Throws on failure.
+    public function SetLocked(string $domain, bool $locked): bool
     {
-        $this->apiRequest('PUT', '/' . rawurlencode($domain), [], ['locked' => !$this->DomainLocked($domain)]);
+        $this->apiRequest('PUT', '/' . rawurlencode($domain), [], ['locked' => $locked]);
         return true;
     }
 

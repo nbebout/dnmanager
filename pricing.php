@@ -7,15 +7,8 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
 
 $prices = [];
 
-// Cache each registrar's pricing lookup for 15 minutes. Pricing rarely
-// changes and fetching it live can mean dozens of sequential outbound API
-// calls per page load - caching is what keeps this page from timing out
-// a fronting proxy/load balancer under normal use.
 foreach ($clients as $registrarKey => $client) {
-  $cacheKey = 'pricing_' . $registrarKey . '_' . md5(implode(',', $config['pricingTLDs']));
-  $prices[$client->GetRegistrarName()] = cacheRemember($cacheKey, 900, function () use ($client, $config) {
-    return $client->GetAllPrices($config['pricingTLDs']);
-  });
+  $prices[$client->GetRegistrarName()] = getRegistrarPrices($registrarKey, $client, $config['pricingTLDs']);
 }
 ?>
 <!DOCTYPE html>

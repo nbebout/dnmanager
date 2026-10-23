@@ -62,6 +62,35 @@ function getAllDomains(array $clients): array
     return [$domains, $errors];
 }
 
+// getRegistrarPrices returns a registrar's register, renew, and transfer prices
+// for each TLD in $tlds, cached for 15 minutes. Pricing rarely changes and
+// fetching it live can mean dozens of sequential outbound API calls per page
+// load - caching is what keeps the pricing pages from timing out a fronting
+// proxy/load balancer under normal use.
+function getRegistrarPrices(string $registrarKey, RegistrarClient $client, array $tlds): array
+{
+    sort($tlds);
+    $cacheKey = 'pricing_' . $registrarKey . '_' . md5(implode(',', $tlds));
+    return cacheRemember($cacheKey, 900, function () use ($client, $tlds) {
+        return $client->GetAllPrices($tlds);
+    });
+}
+
+// getRenewalPrices is like getRegistrarPrices but only needs renewal prices.
+// eNom has a renewal-only lookup that makes a third of the API calls, so it's
+// used for eNom; the other registrars return all their pricing in one call.
+function getRenewalPrices(string $registrarKey, RegistrarClient $client, array $tlds): array
+{
+    if (!($client instanceof EnomClient)) {
+        return getRegistrarPrices($registrarKey, $client, $tlds);
+    }
+    sort($tlds);
+    $cacheKey = 'renewal_prices_' . $registrarKey . '_' . md5(implode(',', $tlds));
+    return cacheRemember($cacheKey, 900, function () use ($client, $tlds) {
+        return $client->GetAllRenewalPrices($tlds);
+    });
+}
+
 // setFlashError stores an error message to show on the next page load.
 function setFlashError(string $message): void
 {
@@ -118,6 +147,13 @@ function buildUrl(string $path, array $params = []): string
     }
 
     return h($path . '?' . http_build_query($params));
+}
+
+// redirectTo sends a redirect to the given page and ends the request.
+function redirectTo(string $path, array $params = []): void
+{
+    header('Location: ' . (empty($params) ? $path : $path . '?' . http_build_query($params)));
+    exit;
 }
 
 function csrfToken(): string

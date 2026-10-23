@@ -106,6 +106,7 @@ switch ($_REQUEST['sortBy']) {
                 <form action="toggleLockStatus.php" method="post" class="inline-action-form">
                   <input type="hidden" name="domain" value="<?= h($domain->name) ?>">
                   <input type="hidden" name="registrar" value="<?= h($registrarKey) ?>">
+                  <input type="hidden" name="locked" value="<?= $domain->locked ? '0' : '1' ?>">
                   <?= csrfInput() ?>
                   <button type="submit" class="link-button"><?= $domain->locked ? 'Yes' : 'No' ?></button>
                 </form>

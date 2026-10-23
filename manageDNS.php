@@ -6,8 +6,9 @@ $request = isset($_POST['submit']) ? $_POST : $_GET;
 $sld = requireValidDomainPart($request['sld'] ?? '', 'sld');
 $tld = requireValidTld($request['tld'] ?? '');
 $registrar = requireValidRegistrar($request['registrar'] ?? '');
-$errors = [];
 
+// Changes redirect back to this page afterwards, so refreshing it doesn't
+// resubmit them. Errors are carried across the redirect as flash errors.
 if (isset($_POST['submit'])) {
   requireValidCsrfToken();
   if (!$clients[$registrar]->SupportsNameservers()) {
@@ -16,12 +17,15 @@ if (isset($_POST['submit'])) {
   $nameservers = requireValidNameservers($_POST['ns'] ?? null);
   try {
     if (!$clients[$registrar]->ModifyNS($sld, $tld, $nameservers)) {
-      $errors[] = "Failed to update the nameservers for $sld.$tld";
+      setFlashError("Failed to update the nameservers for $sld.$tld");
     }
   } catch (Throwable $e) {
-    $errors[] = "Failed to update the nameservers for $sld.$tld: " . $e->getMessage();
+    setFlashError("Failed to update the nameservers for $sld.$tld: " . $e->getMessage());
   }
+  redirectTo('manageDNS.php', ['sld' => $sld, 'tld' => $tld, 'registrar' => $registrar]);
 }
+
+$errors = takeFlashErrors();
 
 // Only offer editing when the current nameservers loaded, so a failed lookup
 // can't lead to replacing them blind.

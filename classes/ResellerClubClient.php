@@ -122,7 +122,8 @@ class ResellerClubClient implements RegistrarClient
           $d->name = (string)$element->string[1];
         }
         if ($element->string[0] == 'endtime') {
-          $d->expires = date("m/d/Y", (int)$element->string[1]);
+          // endtime is a Unix timestamp; keep it in UTC so the server's timezone can't shift the date.
+          $d->expires = gmdate('c', (int)$element->string[1]);
           $hasEndTime = true;
         }
         if ($element->string[0] == 'orderstatus') {
@@ -168,10 +169,10 @@ class ResellerClubClient implements RegistrarClient
     return ($xml->count() >= 1);
   }
 
-  // Will toggle the current locked status for the given domain
-  public function ToggleLocked(string $domain): bool
+  // SetLocked turns theft protection on or off for the given domain.
+  public function SetLocked(string $domain, bool $locked): bool
   {
-    $command = $this->DomainLocked($domain) ? 'disable-theft-protection' : 'enable-theft-protection';
+    $command = $locked ? 'enable-theft-protection' : 'disable-theft-protection';
     $queryData = $this->baseApiArgs();
     $queryData['order-id'] = $this->GetOrderID($domain);
     $xml = $this->apiCall("$command.xml", $queryData, true);

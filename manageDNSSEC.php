@@ -6,11 +6,11 @@ $request = isset($_POST['submit']) ? $_POST : $_GET;
 $sld = requireValidDomainPart($request['sld'] ?? '', 'sld');
 $tld = requireValidTld($request['tld'] ?? '');
 $registrar = requireValidRegistrar($request['registrar'] ?? '');
-$errors = takeFlashErrors();
 
+// Changes redirect back to this page afterwards, so refreshing it doesn't
+// resubmit them. Errors are carried across the redirect as flash errors.
 if (isset($_POST['submit'])) {
   requireValidCsrfToken();
-  // URL for API request
   [$keytag, $algorithm, $digesttype, $digest] = requireValidDnssecInput(
     $_POST['keytag'] ?? null,
     $_POST['algorithm'] ?? null,
@@ -23,12 +23,15 @@ if (isset($_POST['submit'])) {
   }
   try {
     if (!$clients[$registrar]->AddDnsSec($sld, $tld, $keytag, $algorithm, $digesttype, $digest)) {
-      $errors[] = "Failed to add the DNSSEC record for $sld.$tld";
+      setFlashError("Failed to add the DNSSEC record for $sld.$tld");
     }
   } catch (Throwable $e) {
-    $errors[] = "Failed to add the DNSSEC record for $sld.$tld: " . $e->getMessage();
+    setFlashError("Failed to add the DNSSEC record for $sld.$tld: " . $e->getMessage());
   }
+  redirectTo('manageDNSSEC.php', ['sld' => $sld, 'tld' => $tld, 'registrar' => $registrar]);
 }
+
+$errors = takeFlashErrors();
 
 try {
   $keylist = $clients[$registrar]->GetDnsSec($sld, $tld);

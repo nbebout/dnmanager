@@ -8,15 +8,14 @@ foreach ($domains as $domain) {
   }
 }
 
-// Cache eNom's renewal pricing for 15 minutes rather than fetching it live on
-// every page load - GetAllRenewalPrices() makes one outbound API call per
-// configured TLD, which is slow and, combined across pages, a common cause
-// of a fronting proxy/load balancer returning a gateway timeout.
-$enomPrices = [];
-if (isset($clients['enom'])) {
-  $enomPrices = cacheRemember('renewal_prices_enom_' . md5(implode(',', $config['pricingTLDs'])), 900, function () use ($clients, $config) {
-    return $clients['enom']->GetAllRenewalPrices($config['pricingTLDs']);
-  });
+// Each domain's renewal cost comes from its own registrar's pricing.
+$renewalPrices = [];
+foreach ($clients as $registrarKey => $client) {
+  try {
+    $renewalPrices[$registrarKey] = getRenewalPrices($registrarKey, $client, $config['pricingTLDs']);
+  } catch (Throwable $e) {
+    $errors[] = $client->GetRegistrarName() . ': failed to load renewal prices: ' . $e->getMessage();
+  }
 }
 
 switch ($_REQUEST['sortBy'] ?? 'expires') {
@@ -109,12 +108,13 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
         <td><?= h($domain->name) ?></td>
         <td><?= h($domain->registrar) ?></td>
         <td><?= h(formatDate($domain->expires)) ?></td>
-        <td><?= isset($enomPrices[$tld]['renew']) ? h($fmt->formatCurrency($enomPrices[$tld]['renew'], 'USD')) : 'N/A' ?></td>
+        <td><?= isset($renewalPrices[$registrarKey][$tld]['renew']) ? h($fmt->formatCurrency($renewalPrices[$registrarKey][$tld]['renew'], 'USD')) : 'N/A' ?></td>
         <td>
           <?php if ($sld !== null && $clients[$registrarKey]->SupportsToggleLocked()) : ?>
             <form action="toggleLockStatus.php" method="post" class="inline-action-form">
               <input type="hidden" name="domain" value="<?= h($domain->name) ?>">
               <input type="hidden" name="registrar" value="<?= h($registrarKey) ?>">
+              <input type="hidden" name="locked" value="<?= $domain->locked ? '0' : '1' ?>">
               <?= csrfInput() ?>
               <button type="submit" class="link-button"><?= $domain->locked ? 'Yes' : 'No' ?></button>
             </form>
