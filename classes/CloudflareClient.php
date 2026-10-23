@@ -19,7 +19,7 @@ class CloudflareClient implements RegistrarClient
         $accountId = $options['account-id'] ?? '';
         $apiToken = $options['apitoken'] ?? '';
 
-        if (empty($server) || empty($accountId) || empty($apiToken)) {
+        if (empty($accountId) || empty($apiToken)) {
             throw new Exception('Account id and api token required for cloudflare api');
         }
 
@@ -36,10 +36,7 @@ class CloudflareClient implements RegistrarClient
     // SetApiPath will set the $apiEndpoint variable. This should only be used when testing with a stub server.
     public function SetApiPath(string $path)
     {
-        if ($path[0] !== '/') {
-            $path = '/' . $path;
-        }
-        $this->apiEndpoint = rtrim($path, '/');
+        $this->apiEndpoint = rtrim('/' . ltrim($path, '/'), '/');
     }
 
     // apiRequest calls the given registrar API path (relative to the account's
