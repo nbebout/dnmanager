@@ -72,6 +72,49 @@ function getAllDomains(array $clients): array
     return [$domains, $errors];
 }
 
+// getDnsSecStatuses looks up the DNSSEC status of the domains at registrars
+// that can report it without managing the DS records here (only Cloudflare).
+// Returns the statuses keyed by registrar key and lowercased domain name, and
+// the errors from any registrar whose lookup failed.
+function getDnsSecStatuses(array $clients, array $domains): array
+{
+    $statuses = [];
+    $errors = [];
+    foreach ($clients as $registrarKey => $client) {
+        if (!($client instanceof CloudflareClient)) {
+            continue;
+        }
+        $names = [];
+        foreach ($domains as $domain) {
+            if (strtolower($domain->registrar) === $registrarKey) {
+                $names[] = $domain->name;
+            }
+        }
+        if (empty($names)) {
+            continue;
+        }
+        try {
+            $statuses[$registrarKey] = $client->GetDnsSecStatuses($names);
+        } catch (Throwable $e) {
+            $errors[] = $client->GetRegistrarName() . ': failed to load the DNSSEC status: ' . $e->getMessage();
+        }
+    }
+    return [$statuses, $errors];
+}
+
+// formatDnsSecStatus turns a Cloudflare DNSSEC status into a label for display.
+function formatDnsSecStatus(string $status): string
+{
+    $labels = [
+        'active' => 'On',
+        'pending' => 'Pending (DS record not yet at the registry)',
+        'disabled' => 'Off',
+        'pending-disabled' => 'Turning off',
+        'error' => 'Error',
+    ];
+    return $labels[$status] ?? ($status === '' ? 'Unknown' : $status);
+}
+
 // getRegistrarPrices returns a registrar's register, renew, and transfer prices
 // for each TLD in $tlds, cached for 15 minutes. Throws if the prices couldn't
 // be fetched and there's no earlier cached copy to fall back on. Pricing rarely changes and

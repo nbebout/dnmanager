@@ -7,7 +7,8 @@ foreach ($domains as $domain) {
     $errors[] = $domain->registrar . ": couldn't parse domain name '" . $domain->name . "'";
   }
 }
-$errors = array_merge($clientErrors, takeFlashErrors(), $errors);
+[$dnssecStatuses, $dnssecErrors] = getDnsSecStatuses($clients, $domains);
+$errors = array_merge($clientErrors, takeFlashErrors(), $errors, $dnssecErrors);
 
 if (!isset($_REQUEST['sortBy'])) {
   $_REQUEST['sortBy'] = 'domain';
@@ -82,6 +83,8 @@ switch ($_REQUEST['sortBy']) {
             <td>
               <?php if ($sld !== null && $clients[$registrarKey]->SupportsDnsSec()) : ?>
                 <a href="<?= buildUrl('manageDNSSEC.php', ['sld' => $sld, 'tld' => $tld, 'registrar' => $registrarKey]) ?>">Edit</a>
+              <?php elseif (isset($dnssecStatuses[$registrarKey][strtolower($domain->name)])) : ?>
+                <?= h(formatDnsSecStatus($dnssecStatuses[$registrarKey][strtolower($domain->name)])) ?>
               <?php endif; ?>
             </td>
             <td>
