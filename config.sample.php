@@ -14,7 +14,7 @@ $config['namecheap'] = [
     'server' => '',
     'username' => '',
     'apikey' => '',
-    'clientip' => ''
+    'clientip' => '' // Public IPv4 address of this server, must be whitelisted in Namecheap's API settings
 ];
 
 $config['resellerclub'] = [

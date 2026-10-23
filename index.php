@@ -7,7 +7,7 @@ foreach ($domains as $domain) {
     $errors[] = $domain->registrar . ": couldn't parse domain name '" . $domain->name . "'";
   }
 }
-$errors = array_merge(takeFlashErrors(), $errors);
+$errors = array_merge($clientErrors, takeFlashErrors(), $errors);
 
 if (!isset($_REQUEST['sortBy'])) {
   $_REQUEST['sortBy'] = 'domain';

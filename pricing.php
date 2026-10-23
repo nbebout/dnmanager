@@ -6,7 +6,7 @@ sort($config['pricingTLDs']);
 $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
 
 $prices = [];
-$errors = [];
+$errors = $clientErrors;
 
 // A registrar whose pricing can't be loaded still gets its columns, showing N/A.
 foreach ($clients as $registrarKey => $client) {

@@ -8,41 +8,51 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $clients = [];
+$clientErrors = [];
 
-// Setup enom client
+// Each client is created separately, so a mistake in one registrar's config is
+// reported on the pages (via $clientErrors) instead of breaking every page.
 if (!empty($config['enom']['server'])) {
-    $enomClient = new EnomClient($config['enom']['server'], $config['enom']['username'], $config['enom']['password']);
-    if (defined('TESTING') && isset($config['enom']['api_path'])) {
-        $enomClient->SetApiPath($config['enom']['api_path']);
-    }
-    $clients['enom'] = $enomClient;
+    addClient('enom', 'eNom', function () use ($config) {
+        return new EnomClient($config['enom']['server'], $config['enom']['username'] ?? '', $config['enom']['password'] ?? '');
+    });
 }
 
-// Setup Namecheap client
 if (!empty($config['namecheap']['server'])) {
-    $namecheapClient = new NameCheapClient($config['namecheap']);
-    if (defined('TESTING') && isset($config['namecheap']['api_path'])) {
-        $namecheapClient->SetApiPath($config['namecheap']['api_path']);
-    }
-    $clients['namecheap'] = $namecheapClient;
+    addClient('namecheap', 'Namecheap', function () use ($config) {
+        return new NameCheapClient($config['namecheap']);
+    });
 }
 
-// Setup ResellerClub client
 if (!empty($config['resellerclub']['server'])) {
-    $resellerclubClient = new ResellerClubClient($config['resellerclub']['server'], $config['resellerclub']['username'], $config['resellerclub']['apikey'], $config['resellerclub']['customer-id']);
-    if (defined('TESTING') && isset($config['resellerclub']['api_path'])) {
-        $resellerclubClient->SetApiPath($config['resellerclub']['api_path']);
-    }
-    $clients['resellerclub'] = $resellerclubClient;
+    addClient('resellerclub', 'ResellerClub', function () use ($config) {
+        $rc = $config['resellerclub'];
+        return new ResellerClubClient($rc['server'], $rc['username'] ?? '', $rc['apikey'] ?? '', $rc['customer-id'] ?? '');
+    });
 }
 
-// Setup Cloudflare client
 if (!empty($config['cloudflare']['account-id']) && !empty($config['cloudflare']['apitoken'])) {
-    $cloudflareClient = new CloudflareClient($config['cloudflare']);
-    if (defined('TESTING') && isset($config['cloudflare']['api_path'])) {
-        $cloudflareClient->SetApiPath($config['cloudflare']['api_path']);
+    addClient('cloudflare', 'Cloudflare', function () use ($config) {
+        return new CloudflareClient($config['cloudflare']);
+    });
+}
+
+// addClient creates a registrar client with $create and adds it to $clients
+// under $key, pointing it at the stub API path when testing. If creating it
+// fails, the error is added to $clientErrors and the registrar is left out.
+function addClient(string $key, string $name, callable $create): void
+{
+    global $clients, $clientErrors, $config;
+
+    try {
+        $client = $create();
+        if (defined('TESTING') && isset($config[$key]['api_path'])) {
+            $client->SetApiPath($config[$key]['api_path']);
+        }
+        $clients[$key] = $client;
+    } catch (Throwable $e) {
+        $clientErrors[] = "$name: " . $e->getMessage();
     }
-    $clients['cloudflare'] = $cloudflareClient;
 }
 
 // getAllDomains fetches the domains from every registrar. A registrar that

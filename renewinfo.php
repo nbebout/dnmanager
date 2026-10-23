@@ -2,6 +2,7 @@
 require_once('init.php');
 
 [$domains, $errors] = getAllDomains($clients);
+$errors = array_merge($clientErrors, $errors);
 foreach ($domains as $domain) {
   if (!isValidDomain((string)$domain->name)) {
     $errors[] = $domain->registrar . ": couldn't parse domain name '" . $domain->name . "'";

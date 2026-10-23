@@ -11,13 +11,17 @@ class NameCheapClient implements RegistrarClient
 
     public function __construct(array $options)
     {
-        $server = $options['server'];
-        $username = $options['username'];
-        $apiKey = $options['apikey'];
-        $clientIP = $options['clientip'] ?? $_SERVER['REMOTE_ADDR'];
+        $server = $options['server'] ?? '';
+        $username = $options['username'] ?? '';
+        $apiKey = $options['apikey'] ?? '';
+        $clientIP = $options['clientip'] ?? '';
 
-        if (empty($server) || empty($username) || empty($apiKey)) {
-            throw new Exception('Server, username, and api key required for namecheap api');
+        if (empty($server) || empty($username) || empty($apiKey) || empty($clientIP)) {
+            throw new Exception('Server, username, api key, and client ip required for namecheap api');
+        }
+        // Namecheap checks ClientIp against the API whitelist, and only accepts IPv4.
+        if (filter_var($clientIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+            throw new Exception("clientip must be this server's public IPv4 address");
         }
 
         $this->server = trim($server, '/');
