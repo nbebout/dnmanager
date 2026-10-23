@@ -52,34 +52,68 @@ class ResellerClubClient implements RegistrarClient
     return $data;
   }
 
+  // apiCall calls the given API command (e.g. "details.xml") and returns the parsed response.
+  // $extraQuery is an already encoded query string appended to $queryData.
+  // Throws a RuntimeException if the request failed or ResellerClub reported an error.
+  private function apiCall(string $command, array $queryData, bool $post = false, string $extraQuery = ''): SimpleXMLElement
+  {
+    $qs = http_build_query($queryData);
+    $url = "{$this->server}{$this->apiEndpoint}$command?$qs";
+    if ($extraQuery !== '') {
+      $url .= "&$extraQuery";
+    }
+    $xml = $post ? httpPostXml($url) : httpGetXml($url);
+    if ($xml === false) {
+      throw new RuntimeException("ResellerClub API request failed ($command)");
+    }
+    if (strcasecmp((string)$this->entryValue($xml, 'status'), 'error') === 0) {
+      throw new RuntimeException('ResellerClub API error: ' . ($this->entryValue($xml, 'message') ?? 'unknown error'));
+    }
+    return $xml;
+  }
+
+  // entryValue returns the value of the top level <entry> with the given key, or null if there is none.
+  private function entryValue(SimpleXMLElement $xml, string $key): ?string
+  {
+    foreach ($xml->entry as $entry) {
+      if ((string)$entry->string[0] === $key) {
+        return (string)$entry->string[1];
+      }
+    }
+    return null;
+  }
+
   // GetAllDomains will return information on all domains owned by $this->username.
+  // The search results are paged, so pages are fetched until the reported total is reached.
   public function GetAllDomains(): array
   {
     $orders = array();
     $queryData = $this->baseApiArgs();
-    $queryData['no-of-records'] = 10;
+    $queryData['no-of-records'] = 100;
     $queryData['page-no'] = 1;
     $queryData['customer-id'] = $this->customerid;
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
-    $xml = httpGetXml($url);
-    foreach ($xml->entry as $entry) {
-      if ($entry->hashtable) {
-        foreach ($entry->hashtable->entry as $element) {
-          if ($element->string[0] == 'orders.orderid') {
-            $orders[] = (int)$element->string[1];
+    do {
+      $xml = $this->apiCall('search.xml', $queryData);
+      $pageCount = 0;
+      foreach ($xml->entry as $entry) {
+        if ($entry->hashtable) {
+          foreach ($entry->hashtable->entry as $element) {
+            if ($element->string[0] == 'orders.orderid') {
+              $orders[] = (int)$element->string[1];
+              $pageCount++;
+            }
           }
         }
       }
-    }
+      $total = (int)$this->entryValue($xml, 'recsindb');
+      $queryData['page-no']++;
+    } while ($pageCount > 0 && count($orders) < $total);
     $domainlist = [];
     foreach ($orders as $order) {
       $queryData = $this->baseApiArgs();
       $queryData['order-id'] = $order;
       $queryData['options'] = 'OrderDetails';
-      $qs = http_build_query($queryData);
-      $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
-      $xml = httpGetXml($url);
+      $xml = $this->apiCall('details.xml', $queryData);
       $d = new Domain();
       $d->registrar = 'ResellerClub';
       $hasEndTime = false;
@@ -112,9 +146,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData['no-of-records'] = 10;
     $queryData['page-no'] = 1;
     $queryData['domain-name'] = $domain;
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}{$this->apiEndpoint}search.xml?$qs";
-    $xml = httpGetXml($url);
+    $xml = $this->apiCall('search.xml', $queryData);
     foreach ($xml->entry as $entry) {
       if ($entry->hashtable) {
         foreach ($entry->hashtable->entry as $element) {
@@ -124,6 +156,7 @@ class ResellerClubClient implements RegistrarClient
         }
       }
     }
+    throw new RuntimeException("ResellerClub has no order for $domain");
   }
 
   // will return string true if domain is locked, false if domain is unlocked
@@ -131,9 +164,7 @@ class ResellerClubClient implements RegistrarClient
   {
     $queryData = $this->baseApiArgs();
     $queryData['order-id'] = $this->GetOrderID($domain);
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}{$this->apiEndpoint}locks.xml?$qs";
-    $xml = httpGetXml($url);
+    $xml = $this->apiCall('locks.xml', $queryData);
     return ($xml->count() >= 1);
   }
 
@@ -143,9 +174,7 @@ class ResellerClubClient implements RegistrarClient
     $command = $this->DomainLocked($domain) ? 'disable-theft-protection' : 'enable-theft-protection';
     $queryData = $this->baseApiArgs();
     $queryData['order-id'] = $this->GetOrderID($domain);
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}{$this->apiEndpoint}$command.xml?$qs";
-    $xml = httpPostXml($url);
+    $xml = $this->apiCall("$command.xml", $queryData, true);
     foreach ($xml->entry as $entry) {
       if ($entry->string[0] == 'actionstatus') {
         return $entry->string[1] == 'Success';
@@ -160,9 +189,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData = $this->baseApiArgs();
     $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
     $queryData['options'] = 'DNSSECDetails';
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
-    $xml = httpGetXml($url);
+    $xml = $this->apiCall('details.xml', $queryData);
     $keylist = [];
     foreach ($xml->entry as $entry) {
       if ($entry->string == 'dnssec') {
@@ -218,33 +245,21 @@ class ResellerClubClient implements RegistrarClient
     $queryData['attr-name4'] = 'digest';
     $queryData['attr-value4'] = $digest;
 
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}{$this->apiEndpoint}$command.xml?$qs";
-    $xml = httpPostXml($url);
-
-    return $xml;
+    return $this->apiCall("$command.xml", $queryData, true);
   }
 
   // AddDnsSec will add a new DNS Sec record to the given domain.
   public function AddDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest): bool
   {
     $xml = $this->commonDnsSec('add-dnssec', $sld, $tld, $keytag, $alg, $digesttype, $digest);
-    foreach ($xml->entry as $entry) {
-      if ($entry->string[0] == 'actionstatus') {
-        return $entry->string[1] == 'Success';
-      }
-    }
+    return $this->entryValue($xml, 'actionstatus') === 'Success';
   }
 
   // DeleteDnsSec will delete the give DNS Sec record for the given domain.
   public function DeleteDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest): bool
   {
     $xml = $this->commonDnsSec('del-dnssec', $sld, $tld, $keytag, $alg, $digesttype, $digest);
-    foreach ($xml->entry as $entry) {
-      if ($entry->string[0] == 'actionstatus') {
-        return $entry->string[1] == 'Success';
-      }
-    }
+    return $this->entryValue($xml, 'actionstatus') === 'Success';
   }
 
   // GetDns returns information about the nameserves for the given domain.
@@ -253,9 +268,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData = $this->baseApiArgs();
     $queryData['order-id'] = $this->GetOrderID("$sld.$tld");
     $queryData['options'] = 'NsDetails';
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}{$this->apiEndpoint}details.xml?$qs";
-    $xml = httpGetXml($url);
+    $xml = $this->apiCall('details.xml', $queryData);
     $nameservers = array();
     foreach ($xml->entry as $entry) {
       if (substr($entry->string[0], 0, 2) == 'ns') {
@@ -283,22 +296,12 @@ class ResellerClubClient implements RegistrarClient
       array_splice($nameservers, 12);
     }
 
-    $qs = http_build_query($queryData);
     $nsQuery = implode('&', array_map(function (string $nameserver): string {
       return http_build_query(['ns' => $nameserver]);
     }, $nameservers));
-    $url = "{$this->server}{$this->apiEndpoint}modify-ns.xml?$qs";
-    if ($nsQuery !== '') {
-      $url .= "&$nsQuery";
-    }
 
-    $xml = httpPostXml($url);
-    foreach ($xml->entry as $entry) {
-      if ($entry->string[0] == 'actionstatus') {
-        return $entry->string[1] == 'Success';
-      }
-    }
-    return false;
+    $xml = $this->apiCall('modify-ns.xml', $queryData, true, $nsQuery);
+    return $this->entryValue($xml, 'actionstatus') === 'Success';
   }
 
   // resellterTypeToInt takes a string identifier and returns enom's int parameter for the type of reseller product

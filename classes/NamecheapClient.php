@@ -17,7 +17,7 @@ class NameCheapClient implements RegistrarClient
         $clientIP = $options['clientip'] ?? $_SERVER['REMOTE_ADDR'];
 
         if (empty($server) || empty($username) || empty($apiKey)) {
-            throw new Exception('Server, username, and api key required for enom api');
+            throw new Exception('Server, username, and api key required for namecheap api');
         }
 
         $this->server = trim($server, '/');
@@ -61,25 +61,49 @@ class NameCheapClient implements RegistrarClient
         return $data;
     }
 
+    // apiGet calls the given API command and returns the parsed response.
+    // Throws a RuntimeException if the request failed or Namecheap reported an error.
+    private function apiGet(array $queryData): SimpleXMLElement
+    {
+        $qs = http_build_query($queryData);
+        $xml = httpGetXml("{$this->server}{$this->apiEndpoint}?$qs");
+        if ($xml === false) {
+            throw new RuntimeException("Namecheap API request failed ({$queryData['Command']})");
+        }
+        if ((string)$xml['Status'] !== 'OK') {
+            $messages = array_map('strval', iterator_to_array($xml->Errors->Error, false));
+            throw new RuntimeException('Namecheap API error: ' . (implode('; ', $messages) ?: 'unknown error'));
+        }
+        return $xml;
+    }
+
     // GetAllDomains will return information on all domains owned by $this->username.
+    // The list is paged, so pages are fetched until the reported total is reached.
     public function GetAllDomains(): array
     {
         $queryData = $this->baseApiArgs('namecheap.domains.getList');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $xml = httpGetXml($url);
-        $domainlistXML = $xml->CommandResponse->DomainGetListResult->Domain;
+        $queryData['PageSize'] = 100;
+        $queryData['Page'] = 1;
         $domainlist = [];
-        foreach ($domainlistXML as $domain) {
-            $attributes = $domain->attributes();
-            $d = new Domain();
-            $d->registrar = 'Namecheap';
-            $d->name = $attributes->Name;
-            $d->locked = $this->DomainLocked($attributes->Name);
-            $d->expires = $attributes->Expires;
-            $d->autorenew = ($attributes->AutoRenew == 'true');
-            $domainlist[] = $d;
-        }
+        do {
+            $xml = $this->apiGet($queryData);
+            $domainlistXML = $xml->CommandResponse->DomainGetListResult->Domain;
+            if (count($domainlistXML) === 0) {
+                break;
+            }
+            foreach ($domainlistXML as $domain) {
+                $attributes = $domain->attributes();
+                $d = new Domain();
+                $d->registrar = 'Namecheap';
+                $d->name = (string)$attributes->Name;
+                $d->locked = ((string)$attributes->IsLocked === 'true');
+                $d->expires = (string)$attributes->Expires;
+                $d->autorenew = ($attributes->AutoRenew == 'true');
+                $domainlist[] = $d;
+            }
+            $totalItems = (int)$xml->CommandResponse->Paging->TotalItems;
+            $queryData['Page']++;
+        } while (count($domainlist) < $totalItems);
         return $domainlist;
     }
 
@@ -88,9 +112,7 @@ class NameCheapClient implements RegistrarClient
     {
         $queryData2 = $this->baseApiArgs('namecheap.domains.getRegistrarLock');
         $queryData2['DomainName'] = $domain;
-        $qs2 = http_build_query($queryData2);
-        $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
-        $xml2 = httpGetXml($url2);
+        $xml2 = $this->apiGet($queryData2);
         return (string)($xml2->CommandResponse->DomainGetRegistrarLockResult->attributes()->RegistrarLockStatus) === 'true';
     }
 
@@ -100,10 +122,8 @@ class NameCheapClient implements RegistrarClient
         $queryData = $this->baseApiArgs('namecheap.domains.setRegistrarLock');
         $queryData['DomainName'] = $domain;
         $queryData['LockAction'] = ($this->DomainLocked($domain) === true ? "UNLOCK" : "LOCK");
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $numerrors = httpGetXml($url)->Errors->Error->count();
-        return !$numerrors;
+        $this->apiGet($queryData);
+        return true;
     }
 
     public function SupportsDnsSec(): bool
@@ -140,10 +160,8 @@ class NameCheapClient implements RegistrarClient
     // GetDns returns information about the nameserves for the given domain.
     public function GetDns(string $sld, string $tld): array
     {
-        $queryData = $this->commonApiArgs('namecheap.domains.dns.getList', $sld, $tld);
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return (array)(httpGetXml($url)->CommandResponse->DomainDNSGetListResult->Nameserver);
+        $xml = $this->apiGet($this->commonApiArgs('namecheap.domains.dns.getList', $sld, $tld));
+        return array_map('strval', iterator_to_array($xml->CommandResponse->DomainDNSGetListResult->Nameserver, false));
     }
 
     // ModifyNS updates the nameservers for a given domain. $nameservers should be an array of strings with the nameserver DNS entries.
@@ -165,9 +183,8 @@ class NameCheapClient implements RegistrarClient
         }
 
         $queryData['Nameservers'] = implode(",", $nameservers);
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return httpGetXml($url)->Errors->count == 0;
+        $this->apiGet($queryData);
+        return true;
     }
 
     // pricingType takes a string identifier and returns Namecheap's string parameter for the type of reseller product

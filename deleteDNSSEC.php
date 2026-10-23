@@ -18,7 +18,13 @@ if (!$clients[$registrar]->SupportsDnsSec()) {
     rejectInvalidInput('Registrar does not support DNSSEC');
 }
 
-$clients[$registrar]->DeleteDnsSec($sld, $tld, $keytag, $algorithm, $digesttype, $digest);
+try {
+    if (!$clients[$registrar]->DeleteDnsSec($sld, $tld, $keytag, $algorithm, $digesttype, $digest)) {
+        setFlashError("Failed to delete the DNSSEC record for $sld.$tld");
+    }
+} catch (Throwable $e) {
+    setFlashError("Failed to delete the DNSSEC record for $sld.$tld: " . $e->getMessage());
+}
 
 // The client call encodes these values, encode here for our own use so they're not double encoded
 $sld = urlencode($sld);

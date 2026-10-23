@@ -6,6 +6,7 @@ $request = isset($_POST['submit']) ? $_POST : $_GET;
 $sld = requireValidDomainPart($request['sld'] ?? '', 'sld');
 $tld = requireValidTld($request['tld'] ?? '');
 $registrar = requireValidRegistrar($request['registrar'] ?? '');
+$errors = [];
 
 if (isset($_POST['submit'])) {
   requireValidCsrfToken();
@@ -13,10 +14,25 @@ if (isset($_POST['submit'])) {
     rejectInvalidInput('Registrar does not support nameserver changes');
   }
   $nameservers = requireValidNameservers($_POST['ns'] ?? null);
-  $clients[$registrar]->ModifyNS($sld, $tld, $nameservers);
+  try {
+    if (!$clients[$registrar]->ModifyNS($sld, $tld, $nameservers)) {
+      $errors[] = "Failed to update the nameservers for $sld.$tld";
+    }
+  } catch (Throwable $e) {
+    $errors[] = "Failed to update the nameservers for $sld.$tld: " . $e->getMessage();
+  }
 }
 
-$nslist = $clients[$registrar]->GetDns($sld, $tld);
+// Only offer editing when the current nameservers loaded, so a failed lookup
+// can't lead to replacing them blind.
+$nslistLoaded = true;
+try {
+  $nslist = $clients[$registrar]->GetDns($sld, $tld);
+} catch (Throwable $e) {
+  $nslist = [];
+  $nslistLoaded = false;
+  $errors[] = "Failed to load the nameservers for $sld.$tld: " . $e->getMessage();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -56,6 +72,9 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
 
 <body>
   <h1>Domain Name Manager</h1>
+  <?php foreach ($errors as $error) : ?>
+    <p class="error"><?= h($error) ?></p>
+  <?php endforeach; ?>
 
   <h3>Nameservers for <?= h("$sld.$tld") ?></h3>
 
@@ -96,8 +115,10 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
       </tbody>
     </table>
 
-    <br>
-    <a href="#" id="add-record-link">Edit Nameservers</a>
+    <?php if ($nslistLoaded) : ?>
+      <br>
+      <a href="#" id="add-record-link">Edit Nameservers</a>
+    <?php endif; ?>
   </section>
   <br>
   <a href="index.php">Return to Domain List</a>
@@ -106,12 +127,13 @@ $nslist = $clients[$registrar]->GetDns($sld, $tld);
   const staticListTable = document.getElementById('ns-table');
   const toggleLink = document.getElementById('add-record-link');
   const nsFormList = document.getElementById('ns-form-list');
-  toggleLink.addEventListener('click', function(event) {
+  toggleLink?.addEventListener('click', function(event) {
     event.preventDefault();
     nsForm.style.display = 'block';
     staticListTable.style.display = 'none';
 
     const focusElement = nsFormList.querySelectorAll('input[type="text"]')[0];
+    if (!focusElement) return;
     focusElement.focus();
     focusElement.setSelectionRange(0, focusElement.value.length)
   });

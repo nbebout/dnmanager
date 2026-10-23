@@ -6,6 +6,7 @@ $request = isset($_POST['submit']) ? $_POST : $_GET;
 $sld = requireValidDomainPart($request['sld'] ?? '', 'sld');
 $tld = requireValidTld($request['tld'] ?? '');
 $registrar = requireValidRegistrar($request['registrar'] ?? '');
+$errors = takeFlashErrors();
 
 if (isset($_POST['submit'])) {
   requireValidCsrfToken();
@@ -20,11 +21,21 @@ if (isset($_POST['submit'])) {
   if (!$clients[$registrar]->SupportsDnsSec()) {
     rejectInvalidInput('Registrar does not support DNSSEC');
   }
-  $clients[$registrar]->AddDnsSec($sld, $tld, $keytag, $algorithm, $digesttype, $digest);
+  try {
+    if (!$clients[$registrar]->AddDnsSec($sld, $tld, $keytag, $algorithm, $digesttype, $digest)) {
+      $errors[] = "Failed to add the DNSSEC record for $sld.$tld";
+    }
+  } catch (Throwable $e) {
+    $errors[] = "Failed to add the DNSSEC record for $sld.$tld: " . $e->getMessage();
+  }
 }
 
-
-$keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
+try {
+  $keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
+} catch (Throwable $e) {
+  $keylist = [];
+  $errors[] = "Failed to load the DNSSEC records for $sld.$tld: " . $e->getMessage();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -71,6 +82,9 @@ $keylist = $clients[$registrar]->GetDnsSec($sld, $tld);
 
 <body>
   <h1>Domain Name Manager</h1>
+  <?php foreach ($errors as $error) : ?>
+    <p class="error"><?= h($error) ?></p>
+  <?php endforeach; ?>
 
   <div style="display: none;" id="add-record-form">
     <h3>Add DNSSEC record for <?= h("$sld.$tld") ?></h3>

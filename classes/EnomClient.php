@@ -54,13 +54,26 @@ class EnomClient implements RegistrarClient
         return $data;
     }
 
+    // apiGet calls the given API command and returns the parsed response.
+    // Throws a RuntimeException if the request failed or eNom reported an error.
+    private function apiGet(array $queryData): SimpleXMLElement
+    {
+        $qs = http_build_query($queryData);
+        $xml = httpGetXml("{$this->server}{$this->apiEndpoint}?$qs");
+        if ($xml === false) {
+            throw new RuntimeException("eNom API request failed ({$queryData['command']})");
+        }
+        if ((int)$xml->ErrCount > 0) {
+            $messages = array_map('strval', iterator_to_array($xml->errors->children(), false));
+            throw new RuntimeException('eNom API error: ' . (implode('; ', $messages) ?: 'unknown error'));
+        }
+        return $xml;
+    }
+
     // GetAllDomains will return information on all domains owned by $this->username.
     public function GetAllDomains(): array
     {
-        $queryData = $this->baseApiArgs('GetAllDomains');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $xml = httpGetXml($url);
+        $xml = $this->apiGet($this->baseApiArgs('GetAllDomains'));
         $domainlistXML = $xml->GetAllDomains->DomainDetail;
 
         $domainlist = [];
@@ -80,11 +93,8 @@ class EnomClient implements RegistrarClient
     public function DomainLocked(string $domain): bool
     {
         [$sld, $tld] = splitDomain($domain);
-        $queryData2 = $this->commonApiArgs('GetRegLock', $sld, $tld);
-        $qs2 = http_build_query($queryData2);
-        $url2 = "{$this->server}{$this->apiEndpoint}?$qs2";
-        $xml2 = httpGetXml($url2);
-        return (string)($xml2->{'reg-lock'}) === '1';
+        $xml = $this->apiGet($this->commonApiArgs('GetRegLock', $sld, $tld));
+        return (string)($xml->{'reg-lock'}) === '1';
     }
 
     // Will toggle the current locked status for the given domain
@@ -93,18 +103,13 @@ class EnomClient implements RegistrarClient
         [$sld, $tld] = splitDomain($domain);
         $queryData = $this->commonApiArgs('SetRegLock', $sld, $tld);
         $queryData['UnlockRegistrar'] = $this->DomainLocked($domain);
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return httpGetXml($url)->RRPCode == '200';
+        return $this->apiGet($queryData)->RRPCode == '200';
     }
 
     // GetDnsSec returns DNS Sec information about the given domain.
     public function GetDnsSec(string $sld, string $tld): array
     {
-        $queryData = $this->commonApiArgs('GetDnsSec', $sld, $tld);
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $xml = httpGetXml($url);
+        $xml = $this->apiGet($this->commonApiArgs('GetDnsSec', $sld, $tld));
         $keylistXML = $xml->DnsSecData->KeyData;
 
         $keylist = [];
@@ -133,6 +138,7 @@ class EnomClient implements RegistrarClient
     }
 
     // commonDnsSec calls the API using params and paths that are common between the DNS SEC endpoints.
+    // These commands report their result in DnsSecData/Result/ResponseCode rather than RRPCode.
     private function commonDnsSec(string $command, string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest): SimpleXMLElement
     {
         $queryData = $this->commonApiArgs($command, $sld, $tld);
@@ -141,30 +147,26 @@ class EnomClient implements RegistrarClient
         $queryData['digesttype'] = $digesttype;
         $queryData['keytag'] = $keytag;
 
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return httpGetXml($url);
+        return $this->apiGet($queryData);
     }
 
     // AddDnsSec will add a new DNS Sec record to the given domain.
     public function AddDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest): bool
     {
-        return $this->commonDnsSec('AddDnsSec', $sld, $tld, $keytag, $alg, $digesttype, $digest)->RRPCode == '200';
+        return $this->commonDnsSec('AddDnsSec', $sld, $tld, $keytag, $alg, $digesttype, $digest)->DnsSecData->Result->ResponseCode == '200';
     }
 
     // DeleteDnsSec will delete the give DNS Sec record for the given domain.
     public function DeleteDnsSec(string $sld, string $tld, string $keytag, int $alg, string $digesttype, string $digest): bool
     {
-        return $this->commonDnsSec('DeleteDnsSec', $sld, $tld, $keytag, $alg, $digesttype, $digest)->RRPCode == '200';
+        return $this->commonDnsSec('DeleteDnsSec', $sld, $tld, $keytag, $alg, $digesttype, $digest)->DnsSecData->Result->ResponseCode == '200';
     }
 
     // GetDns returns information about the nameserves for the given domain.
     public function GetDns(string $sld, string $tld): array
     {
-        $queryData = $this->commonApiArgs('GetDns', $sld, $tld);
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return (array)(httpGetXml($url)->dns);
+        $xml = $this->apiGet($this->commonApiArgs('GetDns', $sld, $tld));
+        return array_map('strval', iterator_to_array($xml->dns, false));
     }
 
     // ModifyNS updates the nameservers for a given domain. $nameservers should be an array of strings with the nameserver DNS entries.
@@ -182,9 +184,7 @@ class EnomClient implements RegistrarClient
             $i++;
         }
 
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        return httpGetXml($url)->RRPCode == '200';
+        return $this->apiGet($queryData)->RRPCode == '200';
     }
 
     // resellterTypeToInt takes a string identifier and returns enom's int parameter for the type of reseller product
