@@ -210,17 +210,14 @@ class NameCheapClient implements RegistrarClient
 
         $qs = http_build_query($queryData);
         $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        if ($tld == 'name') {
-            $prices['new'] = 999.99;
-            $prices['renew'] = 999.99;
-            $prices['transfer'] = 999.99;
-            return $prices;
-        }
         $respxml = httpGetXml($url);
         if ($respxml === false) {
             throw new RuntimeException("Namecheap pricing request failed ($tld)");
         }
         $resultxml = $respxml->CommandResponse->UserGetPricingResult->ProductType;
+        if (!isset($resultxml->ProductCategory)) {
+            return $prices; // Namecheap has no pricing for this TLD
+        }
 
         foreach ($resultxml->ProductCategory as $productCategory) {
             if ($productCategory->attributes()['Name'] == 'register') {
