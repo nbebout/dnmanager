@@ -2,6 +2,11 @@
 require_once('init.php');
 
 [$domains, $errors] = getAllDomains($clients);
+foreach ($domains as $domain) {
+  if (!isValidDomain((string)$domain->name)) {
+    $errors[] = $domain->registrar . ": couldn't parse domain name '" . $domain->name . "'";
+  }
+}
 
 // Cache eNom's renewal pricing for 15 minutes rather than fetching it live on
 // every page load - GetAllRenewalPrices() makes one outbound API call per
@@ -90,7 +95,15 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
       </thead>
       <tbody>
     <?php foreach ($domains as $domain) : ?>
-      <?php [$sld, $tld] = splitDomain($domain->name); ?>
+      <?php
+      // A name that can't be split still gets listed, just without the
+      // actions that need a valid name.
+      try {
+        [$sld, $tld] = splitDomain($domain->name);
+      } catch (InvalidArgumentException $e) {
+        $sld = $tld = null;
+      }
+      ?>
       <?php $registrarKey = strtolower($domain->registrar); ?>
       <tr>
         <td><?= h($domain->name) ?></td>
@@ -98,7 +111,7 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
         <td><?= h(formatDate($domain->expires)) ?></td>
         <td><?= isset($enomPrices[$tld]['renew']) ? h($fmt->formatCurrency($enomPrices[$tld]['renew'], 'USD')) : 'N/A' ?></td>
         <td>
-          <?php if ($clients[$registrarKey]->SupportsToggleLocked()) : ?>
+          <?php if ($sld !== null && $clients[$registrarKey]->SupportsToggleLocked()) : ?>
             <form action="toggleLockStatus.php" method="post" class="inline-action-form">
               <input type="hidden" name="domain" value="<?= h($domain->name) ?>">
               <input type="hidden" name="registrar" value="<?= h($registrarKey) ?>">
@@ -110,12 +123,12 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
           <?php endif; ?>
         </td>
         <td>
-          <?php if ($clients[$registrarKey]->SupportsDnsSec()) : ?>
+          <?php if ($sld !== null && $clients[$registrarKey]->SupportsDnsSec()) : ?>
             <a href="<?= buildUrl('manageDNSSEC.php', ['sld' => $sld, 'tld' => $tld, 'registrar' => $registrarKey]) ?>">Edit</a>
           <?php endif; ?>
         </td>
         <td>
-          <?php if ($clients[$registrarKey]->SupportsNameservers()) : ?>
+          <?php if ($sld !== null && $clients[$registrarKey]->SupportsNameservers()) : ?>
             <a href="<?= buildUrl('manageDNS.php', ['sld' => $sld, 'tld' => $tld, 'registrar' => $registrarKey]) ?>">Edit</a>
           <?php endif; ?>
         </td>

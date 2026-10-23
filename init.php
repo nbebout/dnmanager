@@ -170,9 +170,29 @@ function requireValidRegistrar($registrar): string
     return $registrar;
 }
 
+function isValidDomainLabel($value): bool
+{
+    return is_string($value) && $value !== '' && strlen($value) <= 63 && preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/', $value);
+}
+
+function isValidDomain($domain): bool
+{
+    if (!is_string($domain) || $domain === '' || strlen($domain) > 253 || substr_count($domain, '.') < 1) {
+        return false;
+    }
+
+    foreach (explode('.', $domain) as $label) {
+        if (!isValidDomainLabel($label)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function requireValidDomainPart($value, string $field): string
 {
-    if (!is_string($value) || $value === '' || strlen($value) > 63 || !preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/', $value)) {
+    if (!isValidDomainLabel($value)) {
         rejectInvalidInput("Invalid $field");
     }
 
@@ -181,13 +201,8 @@ function requireValidDomainPart($value, string $field): string
 
 function requireValidDomain($domain): string
 {
-    if (!is_string($domain) || $domain === '' || strlen($domain) > 253 || substr_count($domain, '.') < 1) {
+    if (!isValidDomain($domain)) {
         rejectInvalidInput('Invalid domain');
-    }
-
-    $labels = explode('.', $domain);
-    foreach ($labels as $label) {
-        requireValidDomainPart($label, 'domain');
     }
 
     return $domain;
@@ -206,40 +221,17 @@ function requireValidTld($tld): string
     return $tld;
 }
 
+// splitDomain splits a registered domain into the SLD and TLD that registrar
+// APIs expect. Since the domain is already registered, its first label is the
+// registrable name and everything after it is the public suffix, which also
+// handles multi-label suffixes like co.uk. Throws if the domain isn't valid.
 function splitDomain(string $domain): array
 {
-    $domain = requireValidDomain($domain);
-    $labels = explode('.', strtolower($domain));
-
-    // Registrars need the registrable name (SLD) and the complete public
-    // suffix (TLD). Keep the common multi-label suffixes together rather than
-    // treating only the final label as the TLD.
-    $multiLabelSuffixes = [
-        'co.uk', 'org.uk', 'me.uk', 'ac.uk', 'gov.uk', 'net.uk',
-        'com.au', 'net.au', 'org.au', 'edu.au', 'gov.au',
-        'co.nz', 'net.nz', 'org.nz', 'co.jp', 'co.kr', 'co.in',
-        'com.br', 'com.cn', 'com.mx', 'com.sg', 'com.tr', 'com.tw',
-    ];
-    $suffix = end($labels);
-    $lastTwo = count($labels) >= 2 ? implode('.', array_slice($labels, -2)) : '';
-    if (in_array($lastTwo, $multiLabelSuffixes, true)) {
-        $suffix = $lastTwo;
-        $sldLabels = array_slice($labels, 0, -2);
-    } else {
-        $sldLabels = array_slice($labels, 0, -1);
+    if (!isValidDomain($domain)) {
+        throw new InvalidArgumentException("Invalid domain name '$domain'");
     }
 
-    if (count($sldLabels) === 0) {
-        rejectInvalidInput('Invalid domain');
-    }
-
-    // A registrar API expects the registrable label as SLD. Reject domains
-    // with an extra label rather than silently sending an ambiguous value.
-    if (count($sldLabels) !== 1) {
-        rejectInvalidInput('Invalid registrable domain');
-    }
-
-    return [$sldLabels[0], $suffix];
+    return explode('.', strtolower($domain), 2);
 }
 
 function requireValidNameservers($value): array
