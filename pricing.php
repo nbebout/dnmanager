@@ -25,19 +25,6 @@ foreach ($clients as $registrarKey => $client) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Domain Name Manager</title>
   <link rel="stylesheet" href="styles.css">
-
-  <style>
-    table,
-    th,
-    td {
-      border: 1px solid black;
-      padding: 4px;
-    }
-
-    body {
-      font-family: sans-serif;
-    }
-  </style>
 </head>
 
 <body>

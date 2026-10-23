@@ -11,7 +11,7 @@ body {
   padding: 1rem;
   color: #1f2933;
   background: #fff;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: sans-serif;
   line-height: 1.5;
 }
 
@@ -21,13 +21,10 @@ h1 {
 
 a,
 a:link,
-a:visited {
-  color: #174ea6;
-}
-
+a:visited,
 a:hover,
 a:focus {
-  color: #0b3478;
+  color: black;
 }
 
 .table-wrapper {
@@ -37,6 +34,7 @@ a:focus {
 }
 
 table {
+  border: 1px solid black;
   border-collapse: collapse;
   margin: 0;
   min-width: 32rem;
@@ -45,8 +43,8 @@ table {
 
 th,
 td {
-  border: 1px solid #b8c2cc;
-  padding: 0.5rem;
+  border: 1px solid black;
+  padding: 4px;
   text-align: left;
   vertical-align: top;
 }
@@ -76,7 +74,7 @@ input[type="submit"] {
 .link-button {
   border: 0;
   background: none;
-  color: #174ea6;
+  color: black;
   cursor: pointer;
   font: inherit;
   padding: 0;
@@ -94,11 +92,6 @@ input[type="submit"] {
 
   h3 {
     font-size: 1.1rem;
-  }
-
-  th,
-  td {
-    padding: 0.4rem;
   }
 }
 

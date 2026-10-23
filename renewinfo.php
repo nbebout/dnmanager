@@ -38,41 +38,6 @@ $fmt = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Domain Name Manager</title>
   <link rel="stylesheet" href="styles.css">
-
-  <style>
-    table,
-    th,
-    td {
-      border: 1px solid black;
-      padding: 4px;
-    }
-
-    body {
-      font-family: sans-serif;
-    }
-
-    a,
-    a:link,
-    a:visited,
-    a:hover {
-      color: black;
-    }
-
-    .inline-action-form {
-      display: inline;
-      margin: 0;
-    }
-
-    .link-button {
-      background: none;
-      border: none;
-      color: black;
-      cursor: pointer;
-      font: inherit;
-      padding: 0;
-      text-decoration: underline;
-    }
-  </style>
 </head>
 
 <body>

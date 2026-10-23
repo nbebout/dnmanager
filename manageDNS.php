@@ -45,33 +45,6 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Domain Name Manager</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    table,
-    th,
-    td {
-      border: 1px solid black;
-      padding: 4px;
-    }
-
-    body {
-      font-family: sans-serif;
-    }
-
-    a,
-    a:link,
-    a:visited,
-    a:hover {
-      color: black;
-    }
-
-    input[type="text"] {
-      font-size: 16px;
-    }
-
-    input[type="text"]:focus {
-      outline-width: 0;
-    }
-  </style>
 </head>
 
 <body>
