@@ -5,6 +5,7 @@ Supported Registrars:
 - eNom
 - ResellerClub
 - Namecheap (No DNSSEC management)
+- Cloudflare (Domain list and lock status only)
 
 ## Developing
 

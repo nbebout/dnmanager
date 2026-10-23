@@ -20,4 +20,10 @@ $config['resellerclub'] = [
     'customer-id' => ''
 ];
 
+$config['cloudflare'] = [
+    'server' => '', // https://api.cloudflare.com
+    'account-id' => '',
+    'apitoken' => '' // API token with Account > Registrar: Domains permissions
+];
+
 $config['pricingTLDs'] = ['biz', 'cloud', 'co', 'com', 'email', 'family', 'info', 'mba', 'me', 'mobi', 'name', 'net', 'online', 'org', 'site', 'tech', 'us', 'website', 'zone'];

@@ -8,3 +8,4 @@ require_once(dirname(__FILE__) . '/RegistrarClient.php');
 require_once(dirname(__FILE__) . '/EnomClient.php');
 require_once(dirname(__FILE__) . '/NamecheapClient.php');
 require_once(dirname(__FILE__) . '/ResellerClubClient.php');
+require_once(dirname(__FILE__) . '/CloudflareClient.php');

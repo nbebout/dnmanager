@@ -58,3 +58,34 @@ function httpPostXml(string $url, array $fields = [], int $timeoutSeconds = HTTP
     $xml = simplexml_load_string($response);
     return $xml === false ? false : $xml;
 }
+
+// httpRequestJson performs an HTTP request with a JSON body (when $body is
+// not null) and a bounded connect+total timeout, and decodes the response as
+// JSON into an associative array. Returns false on transport or parse
+// failure. Error responses (4xx/5xx) with a JSON body are still returned so
+// callers can inspect API-level error details.
+function httpRequestJson(string $method, string $url, array $headers = [], $body = null, int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECONDS)
+{
+    $headers[] = 'Accept: application/json';
+
+    $curl = curl_init($url);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+    if ($body !== null) {
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($body));
+        $headers[] = 'Content-Type: application/json';
+    }
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeoutSeconds);
+    curl_setopt($curl, CURLOPT_TIMEOUT, $timeoutSeconds);
+    $response = curl_exec($curl);
+    $failed = ($response === false) || (bool)curl_errno($curl);
+    curl_close($curl);
+
+    if ($failed) {
+        return false;
+    }
+
+    $json = json_decode($response, true);
+    return is_array($json) ? $json : false;
+}

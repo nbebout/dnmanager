@@ -36,6 +36,15 @@ if (!empty($config['resellerclub']['server'])) {
     $clients['resellerclub'] = $resellerclubClient;
 }
 
+// Setup Cloudflare client
+if (!empty($config['cloudflare']['server'])) {
+    $cloudflareClient = new CloudflareClient($config['cloudflare']);
+    if (defined('TESTING') && isset($config['cloudflare']['api_path'])) {
+        $cloudflareClient->SetApiPath($config['cloudflare']['api_path']);
+    }
+    $clients['cloudflare'] = $cloudflareClient;
+}
+
 function sortDomainsByName(array &$domains)
 {
     usort($domains, function ($a, $b): int {
