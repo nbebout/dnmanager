@@ -46,6 +46,7 @@ switch ($_REQUEST['sortBy']) {
       <th><a href="index.php?sortBy=domain">Domain Name</a></th>
       <th>Registrar</th>
       <th><a href="index.php?sortBy=expires">Expiration Date</a></th>
+      <th>Auto Renew</th>
       <th>Locked</th>
       <th>DNSSEC</th>
           <th>Nameservers</th>
@@ -67,6 +68,7 @@ switch ($_REQUEST['sortBy']) {
             <td><?= h($domain->name) ?></td>
             <td><?= h($domain->registrar) ?></td>
             <td><?= h(formatDate($domain->expires)) ?></td>
+            <td><?= $registrarKey === 'cloudflare' ? ($domain->autorenew ? 'Yes' : 'No') : '' ?></td>
             <td>
               <?php if ($sld !== null && $clients[$registrarKey]->SupportsToggleLocked()) : ?>
                 <form action="toggleLockStatus.php" method="post" class="inline-action-form">
