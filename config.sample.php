@@ -1,5 +1,9 @@
 <?php
 
+// To develop against the stub registrar APIs in test-api/ instead of the real
+// ones, define TESTING and give each registrar an api_path. See README.md.
+// define('TESTING', true);
+
 $config['enom'] = [
     'server' => '',
     'username' => '',
