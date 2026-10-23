@@ -124,7 +124,7 @@ function formatDnsSecStatus(string $status): string
 {
     $labels = [
         'active' => 'On',
-        'pending' => 'Pending (DS record not yet at the registry)',
+        'pending' => 'Pending', // Signed, but the DS record isn't at the registry yet
         'disabled' => 'Off',
         'pending-disabled' => 'Turning off',
         'error' => 'Error',
