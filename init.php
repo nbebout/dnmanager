@@ -37,7 +37,7 @@ if (!empty($config['resellerclub']['server'])) {
 }
 
 // Setup Cloudflare client
-if (!empty($config['cloudflare']['account-id'])) {
+if (!empty($config['cloudflare']['account-id']) && !empty($config['cloudflare']['apitoken'])) {
     $cloudflareClient = new CloudflareClient($config['cloudflare']);
     if (defined('TESTING') && isset($config['cloudflare']['api_path'])) {
         $cloudflareClient->SetApiPath($config['cloudflare']['api_path']);
@@ -60,11 +60,19 @@ function sortDomainsByExpires(array &$domains)
 }
 
 // formatDate normalizes the registrar-specific expiration date strings to
-// Y-m-d for display. Unparseable values are returned unchanged.
+// Y-m-d for display. Dates are formatted in the timezone they were given in
+// (e.g. UTC for ISO 8601 values ending in Z) so they aren't shifted by the
+// server's timezone. Unparseable values are returned unchanged.
 function formatDate($value): string
 {
-    $timestamp = strtotime((string)$value);
-    return $timestamp === false ? (string)$value : date('Y-m-d', $timestamp);
+    if ((string)$value === '') {
+        return '';
+    }
+    try {
+        return (new DateTime((string)$value))->format('Y-m-d');
+    } catch (Exception $e) {
+        return (string)$value;
+    }
 }
 
 function h($value): string
