@@ -2,6 +2,8 @@
 
 class ResellerClubClient implements RegistrarClient
 {
+  const PRICE_LIST_TIMEOUT_SECONDS = 30;
+
   private $server; // Server host name including schema with no trailing slash
   private $username;
   private $apikey;
@@ -67,13 +69,17 @@ class ResellerClubClient implements RegistrarClient
 
   // checkResponse returns a parsed API response, or throws a RuntimeException
   // if the $command request failed ($xml is false) or ResellerClub reported an error.
+  // Most errors come as <entry> status and message values like other responses,
+  // but some (e.g. bad credentials) come as a <response> with <status> and <message>.
   private function checkResponse($xml, string $command): SimpleXMLElement
   {
     if ($xml === false) {
       throw new RuntimeException("ResellerClub API request failed ($command)");
     }
-    if (strcasecmp((string)$this->entryValue($xml, 'status'), 'error') === 0) {
-      throw new RuntimeException('ResellerClub API error: ' . ($this->entryValue($xml, 'message') ?? 'unknown error'));
+    $status = $this->entryValue($xml, 'status') ?? (string)$xml->status;
+    if (strcasecmp($status, 'error') === 0) {
+      $message = $this->entryValue($xml, 'message') ?? (string)$xml->message;
+      throw new RuntimeException('ResellerClub API error: ' . ($message !== '' ? $message : 'unknown error'));
     }
     return $xml;
   }
@@ -342,10 +348,7 @@ class ResellerClubClient implements RegistrarClient
   // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
   public function GetResellerPrice(string $tld): array
   {
-    $queryData = $this->baseApiArgs();
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
-    $xml = $this->checkResponse(httpGetXml($url), 'reseller-cost-price.xml');
+    $xml = $this->priceList();
     $tldtolookfor = "dot$tld";
     if ($tld == 'biz') {
       $tldtolookfor = 'dombiz';
@@ -382,6 +385,17 @@ class ResellerClubClient implements RegistrarClient
     return $prices;
   }
 
+  // priceList returns ResellerClub's reseller cost price list, which has the
+  // prices of every product. It can take ResellerClub 15 seconds or more to
+  // build when it isn't cached on their end, so it gets a longer timeout than
+  // other calls; the prices are cached here for hours, so the wait is rare.
+  private function priceList(): SimpleXMLElement
+  {
+    $qs = http_build_query($this->baseApiArgs());
+    $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
+    return $this->checkResponse(httpGetXml($url, self::PRICE_LIST_TIMEOUT_SECONDS), 'reseller-cost-price.xml');
+  }
+
   private function WhatToSearchFor(string $tld): string
   {
     $donutsgroup1 = ['agency', 'business', 'center', 'city', 'company', 'directory', 'education', 'email', 'equipment', 'exposed', 'football', 'fyi', 'gallery', 'graphics', 'gratis', 'institute', 'international', 'lighting', 'management', 'network', 'photography', 'photos', 'reisen', 'report', 'run', 'schule', 'soccer', 'solutions', 'supplies', 'supply', 'support', 'systems', 'technology', 'tips', 'today'];
@@ -404,10 +418,7 @@ class ResellerClubClient implements RegistrarClient
 
   public function GetAllPrices(array $tldarray): array
   {
-    $queryData = $this->baseApiArgs();
-    $qs = http_build_query($queryData);
-    $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
-    $xml = $this->checkResponse(httpGetXml($url), 'reseller-cost-price.xml');
+    $xml = $this->priceList();
     $prices = array();
     foreach ($tldarray as $tld) {
       foreach ($xml->entry as $entry) {
