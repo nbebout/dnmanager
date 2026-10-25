@@ -37,6 +37,61 @@ function httpGetXml(string $url, int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECO
     }
 }
 
+// httpGetXmlMulti fetches all of $urls concurrently, at most $concurrency at a
+// time, and parses each response as XML. Returns the results with the same
+// keys as $urls; each is false on a transport or parse failure, like
+// httpGetXml. Pages that need dozens of API calls (pricing) use this so the
+// total time is a few round trips instead of the sum of every call.
+function httpGetXmlMulti(array $urls, int $concurrency = 10, int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECONDS): array
+{
+    $results = array_fill_keys(array_keys($urls), false);
+    $pending = $urls;
+    $active = [];
+    $multi = curl_multi_init();
+
+    $previous = libxml_use_internal_errors(true);
+    try {
+        do {
+            while (count($active) < $concurrency && !empty($pending)) {
+                $key = array_key_first($pending);
+                $curl = curl_init($pending[$key]);
+                unset($pending[$key]);
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeoutSeconds);
+                curl_setopt($curl, CURLOPT_TIMEOUT, $timeoutSeconds);
+                curl_multi_add_handle($multi, $curl);
+                $active[(int)$curl] = [$key, $curl];
+            }
+
+            curl_multi_exec($multi, $running);
+            if ($running > 0) {
+                curl_multi_select($multi, 1.0);
+            }
+
+            while ($info = curl_multi_info_read($multi)) {
+                [$key, $curl] = $active[(int)$info['handle']];
+                if ($info['result'] === CURLE_OK) {
+                    $xml = simplexml_load_string(curl_multi_getcontent($curl));
+                    $results[$key] = $xml === false ? false : $xml;
+                }
+                curl_multi_remove_handle($multi, $curl);
+                curl_close($curl);
+                unset($active[(int)$info['handle']]);
+            }
+        } while (!empty($active) || !empty($pending));
+    } finally {
+        foreach ($active as [$key, $curl]) {
+            curl_multi_remove_handle($multi, $curl);
+            curl_close($curl);
+        }
+        curl_multi_close($multi);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+    }
+
+    return $results;
+}
+
 // httpPostXml performs a POST (optionally with $fields as the body) with a
 // bounded connect+total timeout and parses the response as XML.
 function httpPostXml(string $url, array $fields = [], int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECONDS)

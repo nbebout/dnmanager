@@ -204,17 +204,28 @@ class NameCheapClient implements RegistrarClient
         }
     }
 
-    // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
-    public function GetResellerPrice(string $tld): array
+    // pricingUrl returns the namecheap.users.getPricing URL for a TLD.
+    private function pricingUrl(string $tld): string
     {
-        $prices = [];
         $queryData = $this->baseApiArgs('namecheap.users.getPricing');
         $queryData['ProductName'] = $tld;
         $queryData['ProductType'] = 'DOMAIN';
 
         $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $respxml = httpGetXml($url);
+        return "{$this->server}{$this->apiEndpoint}?$qs";
+    }
+
+    // GetResellerPrice returns the register, renew, and transfer prices for a TLD.
+    public function GetResellerPrice(string $tld): array
+    {
+        return $this->pricesFromXml(httpGetXml($this->pricingUrl($tld)), $tld);
+    }
+
+    // pricesFromXml pulls the 1-year register, renew, and transfer prices out of
+    // a getPricing response. Throws if the request failed.
+    private function pricesFromXml($respxml, string $tld): array
+    {
+        $prices = [];
         if ($respxml === false) {
             throw new RuntimeException("Namecheap pricing request failed ($tld)");
         }
@@ -257,9 +268,16 @@ class NameCheapClient implements RegistrarClient
 
     public function GetAllPrices(array $tldarray): array
     {
+        $urls = [];
+        foreach ($tldarray as $tld) {
+            $urls[$tld] = $this->pricingUrl($tld);
+        }
+
+        $responses = httpGetXmlMulti($urls);
+
         $prices = array();
         foreach ($tldarray as $tld) {
-            $prices[$tld] = $this->GetResellerPrice($tld);
+            $prices[$tld] = $this->pricesFromXml($responses[$tld], $tld);
         }
         return $prices;
     }

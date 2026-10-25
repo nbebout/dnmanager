@@ -214,60 +214,52 @@ class EnomClient implements RegistrarClient
         return (float)$xml->productprice->price;
     }
 
-    // GetResellerPrice returns product information about a product type. $type can be one of 'new', 'renew', or 'transfer'.
+    // fetchPrices looks up the given price types ('new', 'renew', 'transfer')
+    // for each TLD, making all the PE_GetResellerPrice calls concurrently.
+    // Returns the prices keyed by TLD and then by type.
+    private function fetchPrices(array $tldarray, array $types): array
+    {
+        $urls = [];
+        foreach ($tldarray as $tld) {
+            foreach ($types as $type) {
+                $queryData = $this->baseApiArgs('PE_GetResellerPrice');
+                $queryData['tld'] = $tld;
+                $queryData['ProductType'] = $this->pricingType($type);
+                $qs = http_build_query($queryData);
+                $urls["$tld|$type"] = "{$this->server}{$this->apiEndpoint}?$qs";
+            }
+        }
+
+        $responses = httpGetXmlMulti($urls);
+
+        $prices = array();
+        foreach ($tldarray as $tld) {
+            foreach ($types as $type) {
+                $prices[$tld][$type] = $this->priceFromXml($responses["$tld|$type"]);
+            }
+        }
+        return $prices;
+    }
+
+    // GetResellerPrice returns the register, renew, and transfer prices for a TLD.
     public function GetResellerPrice(string $tld): array
     {
-        $queryData = $this->baseApiArgs('PE_GetResellerPrice');
-        $queryData['tld'] = $tld;
-
-        $queryData['ProductType'] = $this->pricingType('new');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['new'] = $this->priceFromXml(httpGetXml($url));
-
-        $queryData['ProductType'] = $this->pricingType('renew');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['renew'] = $this->priceFromXml(httpGetXml($url));
-
-        $queryData['ProductType'] = $this->pricingType('transfer');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['transfer'] = $this->priceFromXml(httpGetXml($url));
-
-        return $prices;
+        return $this->fetchPrices([$tld], ['new', 'renew', 'transfer'])[$tld];
     }
 
     public function GetAllPrices(array $tldarray): array
     {
-        $prices = array();
-        foreach ($tldarray as $tld) {
-            $prices[$tld] = $this->GetResellerPrice($tld);
-        }
-        return $prices;
+        return $this->fetchPrices($tldarray, ['new', 'renew', 'transfer']);
     }
 
     // GetRenewalPrice returns product information about only renewals
     public function GetRenewalPrice(string $tld): array
     {
-        $queryData = $this->baseApiArgs('PE_GetResellerPrice');
-        $queryData['tld'] = $tld;
-
-        $queryData['ProductType'] = $this->pricingType('renew');
-        $qs = http_build_query($queryData);
-        $url = "{$this->server}{$this->apiEndpoint}?$qs";
-        $prices['renew'] = $this->priceFromXml(httpGetXml($url));
-
-        return $prices;
+        return $this->fetchPrices([$tld], ['renew'])[$tld];
     }
 
     public function GetAllRenewalPrices(array $tldarray): array
     {
-        $prices = array();
-        foreach ($tldarray as $tld) {
-            $prices[$tld] = $this->GetRenewalPrice($tld);
-        }
-
-        return $prices;
+        return $this->fetchPrices($tldarray, ['renew']);
     }
 }
