@@ -4,8 +4,8 @@
 // registered with Cloudflare must use Cloudflare's nameservers, and DNSSEC is
 // managed on the zone rather than through the registrar, so those features are
 // reported as unsupported. The zone's DNSSEC status can still be read with
-// GetDnsSecStatuses. Cloudflare sells at cost and has no reseller
-// pricing API, so pricing lookups return no data.
+// GetDnsSecStatuses. Cloudflare sells at cost and has no price list, so
+// pricing is looked up with its domain check (see GetAllPrices).
 class CloudflareClient implements RegistrarClient
 {
     private $server; // Server host name including schema with no trailing slash
@@ -40,11 +40,12 @@ class CloudflareClient implements RegistrarClient
         $this->apiEndpoint = rtrim('/' . ltrim($path, '/'), '/');
     }
 
-    // registrarPath returns the API path of the account's registrar domains
-    // endpoint, or of a single domain under it when $domain is given.
-    private function registrarPath(string $domain = ''): string
+    // registrarPath returns the API path of one of the account's registrar
+    // endpoints (e.g. 'registrations'), or of a single domain under it when
+    // $domain is given.
+    private function registrarPath(string $endpoint, string $domain = ''): string
     {
-        $path = '/accounts/' . rawurlencode($this->accountId) . '/registrar/domains';
+        $path = '/accounts/' . rawurlencode($this->accountId) . '/registrar/' . $endpoint;
         return $domain === '' ? $path : $path . '/' . rawurlencode($domain);
     }
 
@@ -68,10 +69,10 @@ class CloudflareClient implements RegistrarClient
         return $response;
     }
 
-    // GetDomain returns the raw Cloudflare registrar information for a single domain.
+    // GetDomain returns the raw Cloudflare registration for a single domain.
     public function GetDomain(string $domain): array
     {
-        $response = $this->apiRequest('GET', $this->registrarPath($domain));
+        $response = $this->apiRequest('GET', $this->registrarPath('registrations', $domain));
         if (!is_array($response['result'] ?? null)) {
             throw new RuntimeException("Cloudflare returned no data for $domain");
         }
@@ -79,34 +80,33 @@ class CloudflareClient implements RegistrarClient
     }
 
     // GetAllDomains will return information on all domains registered in the Cloudflare account.
-    // The registrar API's page numbers start at 0, so paging is driven by the page number and
-    // total_count the API reports back rather than by assuming a starting page. Throws rather
-    // than returning a partial list if any page fails.
+    // The registrations list is paged by cursor: each response gives the cursor for the next
+    // page, and an empty cursor means the last page. Throws rather than returning a partial
+    // list if any page fails.
     public function GetAllDomains(): array
     {
         $domainlist = [];
-        $totalCount = 0;
         $query = ['per_page' => 50];
+        $seenCursors = [];
         do {
-            $response = $this->apiRequest('GET', $this->registrarPath(), $query);
-            if (empty($response['result'])) {
-                break;
-            }
-            foreach ($response['result'] as $domain) {
+            $response = $this->apiRequest('GET', $this->registrarPath('registrations'), $query);
+            foreach ($response['result'] ?? [] as $registration) {
                 $d = new Domain();
                 $d->registrar = 'Cloudflare';
-                $d->name = $domain['name'] ?? '';
-                $d->locked = !empty($domain['locked']);
-                $d->expires = $domain['expires_at'] ?? '';
-                $d->autorenew = !empty($domain['auto_renew']);
+                $d->name = $registration['domain_name'] ?? '';
+                $d->locked = !empty($registration['locked']);
+                // Null while a registration or transfer is still pending.
+                $d->expires = $registration['expires_at'] ?? '';
+                $d->autorenew = !empty($registration['auto_renew']);
                 $domainlist[] = $d;
             }
-            $totalCount = (int)($response['result_info']['total_count'] ?? 0);
-            $query['page'] = (int)($response['result_info']['page'] ?? 0) + 1;
-        } while (count($domainlist) < $totalCount);
-        if (count($domainlist) < $totalCount) {
-            throw new RuntimeException('Cloudflare returned ' . count($domainlist) . " of $totalCount domains");
-        }
+            $cursor = (string)($response['result_info']['cursor'] ?? '');
+            if (isset($seenCursors[$cursor])) {
+                throw new RuntimeException('Cloudflare returned the same page cursor twice');
+            }
+            $seenCursors[$cursor] = true;
+            $query['cursor'] = $cursor;
+        } while ($cursor !== '');
         return $domainlist;
     }
 
@@ -117,10 +117,12 @@ class CloudflareClient implements RegistrarClient
         return !empty($this->GetDomain($domain)['locked']);
     }
 
-    // SetLocked locks or unlocks the given domain. Throws on failure.
+    // SetLocked locks or unlocks the given domain. Throws on failure. The
+    // registrations API can't change the lock, so this still uses the
+    // deprecated registrar domains API.
     public function SetLocked(string $domain, bool $locked): bool
     {
-        $this->apiRequest('PUT', $this->registrarPath($domain), [], ['locked' => $locked]);
+        $this->apiRequest('PUT', $this->registrarPath('domains', $domain), [], ['locked' => $locked]);
         return true;
     }
 
@@ -202,13 +204,47 @@ class CloudflareClient implements RegistrarClient
         return false;
     }
 
+    // GetResellerPrice returns the register, renew, and transfer prices for a TLD.
     public function GetResellerPrice(string $tld): array
     {
-        return [];
+        return $this->GetAllPrices([$tld])[$tld] ?? [];
     }
 
+    // GetAllPrices returns the register, renew, and transfer prices for each TLD.
+    // Cloudflare has no price list, but its domain check reports the price of any
+    // registrable domain, so each TLD is priced by checking a random name in it
+    // that's almost certainly unregistered. The check takes up to 20 domains per
+    // request. Cloudflare charges a one year renewal for a transfer, so the
+    // transfer price is the renewal price. TLDs Cloudflare doesn't sell (or can't
+    // price through the API) are left out. Needs an api token with Registrar edit
+    // permission. Throws if a check fails.
     public function GetAllPrices(array $tldarray): array
     {
-        return [];
+        $tldsByDomain = [];
+        foreach ($tldarray as $tld) {
+            $tldsByDomain['dnmanager-' . bin2hex(random_bytes(6)) . '.' . strtolower($tld)] = $tld;
+        }
+
+        $prices = [];
+        foreach (array_chunk(array_keys($tldsByDomain), 20) as $chunk) {
+            $response = $this->apiRequest('POST', $this->registrarPath('domain-check'), [], ['domains' => $chunk]);
+            foreach ($response['result']['domains'] ?? [] as $result) {
+                $tld = $tldsByDomain[strtolower($result['name'] ?? '')] ?? null;
+                // A premium name would be priced above the TLD's normal price.
+                if ($tld === null || empty($result['registrable']) || ($result['tier'] ?? 'standard') !== 'standard') {
+                    continue;
+                }
+                $pricing = $result['pricing'] ?? [];
+                if (($pricing['currency'] ?? 'USD') !== 'USD' || !isset($pricing['registration_cost'], $pricing['renewal_cost'])) {
+                    continue;
+                }
+                $prices[$tld] = [
+                    'new' => (float)$pricing['registration_cost'],
+                    'renew' => (float)$pricing['renewal_cost'],
+                    'transfer' => (float)$pricing['renewal_cost'],
+                ];
+            }
+        }
+        return $prices;
     }
 }
