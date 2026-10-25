@@ -9,11 +9,23 @@ foreach ($domains as $domain) {
   }
 }
 
-// Each domain's renewal cost comes from its own registrar's pricing.
+// Each domain's renewal cost comes from its own registrar's pricing. Along
+// with the configured pricing TLDs, each registrar is asked for the TLDs of
+// its own domains, so a domain in a TLD missing from the list still gets a
+// price.
+$domainTlds = [];
+foreach ($domains as $domain) {
+  try {
+    $domainTlds[strtolower($domain->registrar)][] = splitDomain($domain->name)[1];
+  } catch (InvalidArgumentException $e) {
+    // Reported above as a name that couldn't be parsed.
+  }
+}
 $renewalPrices = [];
 foreach ($clients as $registrarKey => $client) {
   try {
-    $renewalPrices[$registrarKey] = getRenewalPrices($registrarKey, $client, $config['pricingTLDs'], $warning);
+    $tlds = array_merge($config['pricingTLDs'], $domainTlds[$registrarKey] ?? []);
+    $renewalPrices[$registrarKey] = getRenewalPrices($registrarKey, $client, $tlds, $warning);
     if ($warning !== null) {
       $errors[] = $client->GetRegistrarName() . ": renewal prices are $warning";
     }
