@@ -74,14 +74,12 @@ function httpGetMulti(array $urls, array $headers = [], int $concurrency = 10, i
                     $results[$key] = curl_multi_getcontent($curl);
                 }
                 curl_multi_remove_handle($multi, $curl);
-                curl_close($curl);
                 unset($active[(int)$info['handle']]);
             }
         } while (!empty($active) || !empty($pending));
     } finally {
         foreach ($active as [$key, $curl]) {
             curl_multi_remove_handle($multi, $curl);
-            curl_close($curl);
         }
         curl_multi_close($multi);
     }
@@ -128,7 +126,6 @@ function httpPostXml(string $url, array $fields = [], int $timeoutSeconds = HTTP
     curl_setopt($curl, CURLOPT_TIMEOUT, $timeoutSeconds);
     $response = curl_exec($curl);
     $failed = ($response === false) || (bool)curl_errno($curl);
-    curl_close($curl);
 
     if ($failed) {
         return false;
@@ -159,7 +156,6 @@ function httpRequestJson(string $method, string $url, array $headers = [], $body
     curl_setopt($curl, CURLOPT_TIMEOUT, $timeoutSeconds);
     $response = curl_exec($curl);
     $failed = ($response === false) || (bool)curl_errno($curl);
-    curl_close($curl);
 
     if ($failed) {
         return false;
