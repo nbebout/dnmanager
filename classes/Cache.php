@@ -16,9 +16,10 @@ function cacheDir(): string
     return $dir;
 }
 
-// How long to wait before retrying a refresh that failed, while serving the
-// older cached value. Without this, a registrar that's down or hanging would
-// be retried, and its timeout waited out, on every page load.
+// How long to wait before retrying a refresh that failed. Until then, the
+// older cached value is served, or with none the failure is reported again.
+// Without this, a registrar that's down or hanging would be retried, and its
+// timeout waited out, on every page load.
 const CACHE_RETRY_SECONDS = 900;
 
 // cacheRemember returns the cached value for $key if it is younger than
@@ -30,16 +31,21 @@ const CACHE_RETRY_SECONDS = 900;
 // better than a fatal error or a timed-out page - and $warning is set to
 // say so, so the page can show that the data is old and why. An empty
 // result more likely means something went wrong than that a registrar has
-// no prices, so it's never stored. The failure is recorded in the cache,
-// and the refresh isn't retried for CACHE_RETRY_SECONDS. With nothing
-// cached to fall back on, the exception is thrown (or the empty result
-// returned) as usual.
+// no prices, so it's never stored. With nothing cached to fall back on, the
+// exception is thrown (or the empty result returned) as usual.
+//
+// A failed refresh is recorded in the cache and isn't retried for
+// CACHE_RETRY_SECONDS. Until then, the older value and warning are returned
+// straight away, or with no older value the failure is thrown again.
 function cacheRemember(string $key, int $ttlSeconds, callable $callback, ?string &$warning = null)
 {
     $warning = null;
     $file = cacheDir() . '/' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $key) . '.json';
 
+    // The file holds the cached value ('time', 'value') and/or the last failed
+    // refresh ('failed_at', 'error').
     $cached = null;
+    $failure = null;
     if (is_file($file)) {
         $raw = @file_get_contents($file);
         $decoded = $raw !== false ? json_decode($raw, true) : null;
@@ -48,11 +54,18 @@ function cacheRemember(string $key, int $ttlSeconds, callable $callback, ?string
             if ((time() - $cached['time']) < $ttlSeconds) {
                 return $cached['value'];
             }
-            if (isset($cached['failed_at'], $cached['error']) && (time() - $cached['failed_at']) < CACHE_RETRY_SECONDS) {
-                $warning = cacheStaleWarning($cached);
-                return $cached['value'];
-            }
         }
+        if (is_array($decoded) && isset($decoded['failed_at'], $decoded['error']) && (time() - $decoded['failed_at']) < CACHE_RETRY_SECONDS) {
+            $failure = $decoded;
+        }
+    }
+
+    if ($failure !== null) {
+        if ($cached === null) {
+            throw new RuntimeException($failure['error']);
+        }
+        $warning = cacheStaleWarning($cached);
+        return $cached['value'];
     }
 
     try {
@@ -60,6 +73,7 @@ function cacheRemember(string $key, int $ttlSeconds, callable $callback, ?string
         $error = empty($value) ? 'no data was returned' : null;
     } catch (Throwable $e) {
         if ($cached === null) {
+            @file_put_contents($file, json_encode(['failed_at' => time(), 'error' => $e->getMessage()]), LOCK_EX);
             throw $e;
         }
         $error = $e->getMessage();
