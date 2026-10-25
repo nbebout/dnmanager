@@ -91,7 +91,8 @@ function hideTransferredToCloudflare(array $domains): array
 
 // getDnsSecStatuses looks up the DNSSEC status of the domains at registrars
 // that can report it without managing the DS records here (only Cloudflare).
-// Returns the statuses keyed by registrar key and lowercased domain name, and
+// The statuses are cached for 10 minutes, since looking them up takes an API
+// call per domain on every load of the domain list. Returns the statuses keyed by registrar key and lowercased domain name, and
 // the errors from any registrar whose lookup failed.
 function getDnsSecStatuses(array $clients, array $domains): array
 {
@@ -110,8 +111,12 @@ function getDnsSecStatuses(array $clients, array $domains): array
         if (empty($names)) {
             continue;
         }
+        sort($names);
+        $cacheKey = 'dnssec_statuses_' . $registrarKey . '_' . md5(strtolower(implode(',', $names)));
         try {
-            $statuses[$registrarKey] = $client->GetDnsSecStatuses($names);
+            $statuses[$registrarKey] = cacheRemember($cacheKey, 600, function () use ($client, $names) {
+                return $client->GetDnsSecStatuses($names);
+            });
         } catch (Throwable $e) {
             $errors[] = $client->GetRegistrarName() . ': failed to load the DNSSEC status: ' . $e->getMessage();
         }

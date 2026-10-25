@@ -37,19 +37,18 @@ function httpGetXml(string $url, int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECO
     }
 }
 
-// httpGetXmlMulti fetches all of $urls concurrently, at most $concurrency at a
-// time, and parses each response as XML. Returns the results with the same
-// keys as $urls; each is false on a transport or parse failure, like
-// httpGetXml. Pages that need dozens of API calls (pricing) use this so the
-// total time is a few round trips instead of the sum of every call.
-function httpGetXmlMulti(array $urls, int $concurrency = 10, int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECONDS): array
+// httpGetMulti fetches all of $urls concurrently, at most $concurrency at a
+// time, sending $headers with each request. Returns the response bodies with
+// the same keys as $urls; each is false on a transport failure. Pages that
+// need dozens of API calls use this so the total time is a few round trips
+// instead of the sum of every call.
+function httpGetMulti(array $urls, array $headers = [], int $concurrency = 10, int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECONDS): array
 {
     $results = array_fill_keys(array_keys($urls), false);
     $pending = $urls;
     $active = [];
     $multi = curl_multi_init();
 
-    $previous = libxml_use_internal_errors(true);
     try {
         do {
             while (count($active) < $concurrency && !empty($pending)) {
@@ -57,6 +56,7 @@ function httpGetXmlMulti(array $urls, int $concurrency = 10, int $timeoutSeconds
                 $curl = curl_init($pending[$key]);
                 unset($pending[$key]);
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
                 curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeoutSeconds);
                 curl_setopt($curl, CURLOPT_TIMEOUT, $timeoutSeconds);
                 curl_multi_add_handle($multi, $curl);
@@ -71,8 +71,7 @@ function httpGetXmlMulti(array $urls, int $concurrency = 10, int $timeoutSeconds
             while ($info = curl_multi_info_read($multi)) {
                 [$key, $curl] = $active[(int)$info['handle']];
                 if ($info['result'] === CURLE_OK) {
-                    $xml = simplexml_load_string(curl_multi_getcontent($curl));
-                    $results[$key] = $xml === false ? false : $xml;
+                    $results[$key] = curl_multi_getcontent($curl);
                 }
                 curl_multi_remove_handle($multi, $curl);
                 curl_close($curl);
@@ -85,11 +84,36 @@ function httpGetXmlMulti(array $urls, int $concurrency = 10, int $timeoutSeconds
             curl_close($curl);
         }
         curl_multi_close($multi);
-        libxml_clear_errors();
-        libxml_use_internal_errors($previous);
     }
 
     return $results;
+}
+
+// httpGetXmlMulti is like httpGetMulti but parses each response as XML. Each
+// result is false on a transport or parse failure, like httpGetXml.
+function httpGetXmlMulti(array $urls, int $concurrency = 10, int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECONDS): array
+{
+    $previous = libxml_use_internal_errors(true);
+    try {
+        return array_map(function ($body) {
+            return $body === false ? false : simplexml_load_string($body);
+        }, httpGetMulti($urls, [], $concurrency, $timeoutSeconds));
+    } finally {
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+    }
+}
+
+// httpGetJsonMulti is like httpGetMulti but decodes each response as JSON
+// into an associative array. Each result is false on a transport or parse
+// failure, like httpRequestJson.
+function httpGetJsonMulti(array $urls, array $headers = [], int $concurrency = 10, int $timeoutSeconds = HTTP_DEFAULT_TIMEOUT_SECONDS): array
+{
+    $headers[] = 'Accept: application/json';
+    return array_map(function ($body) {
+        $json = $body === false ? null : json_decode($body, true);
+        return is_array($json) ? $json : false;
+    }, httpGetMulti($urls, $headers, $concurrency, $timeoutSeconds));
 }
 
 // httpPostXml performs a POST (optionally with $fields as the body) with a

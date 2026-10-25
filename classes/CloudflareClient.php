@@ -49,16 +49,26 @@ class CloudflareClient implements RegistrarClient
         return $domain === '' ? $path : $path . '/' . rawurlencode($domain);
     }
 
+    // apiUrl returns the full URL of the given API path (relative to the API base path).
+    private function apiUrl(string $path, array $query = []): string
+    {
+        $url = "{$this->server}{$this->apiEndpoint}{$path}";
+        return empty($query) ? $url : $url . '?' . http_build_query($query);
+    }
+
     // apiRequest calls the given API path (relative to the API base path) and
     // returns the decoded response.
     // Throws a RuntimeException if the request failed or Cloudflare reported an error.
     private function apiRequest(string $method, string $path, array $query = [], $body = null): array
     {
-        $url = "{$this->server}{$this->apiEndpoint}{$path}";
-        if (!empty($query)) {
-            $url .= '?' . http_build_query($query);
-        }
-        $response = httpRequestJson($method, $url, ["Authorization: Bearer {$this->apiToken}"], $body);
+        $response = httpRequestJson($method, $this->apiUrl($path, $query), ["Authorization: Bearer {$this->apiToken}"], $body);
+        return $this->checkResponse($response);
+    }
+
+    // checkResponse returns a decoded API response, or throws a RuntimeException
+    // if the request failed ($response is false) or Cloudflare reported an error.
+    private function checkResponse($response): array
+    {
         if ($response === false) {
             throw new RuntimeException('Cloudflare API request failed');
         }
@@ -149,18 +159,23 @@ class CloudflareClient implements RegistrarClient
     // GetDnsSecStatuses returns the DNSSEC status of each given domain's zone,
     // keyed by the lowercased domain name. The status is one of Cloudflare's
     // values: active, pending, disabled, pending-disabled, or error. Domains
-    // without a zone in the account are left out. Needs an api token that can
-    // read zones and DNS. Throws if a lookup fails.
+    // without a zone in the account are left out. The zones are looked up
+    // concurrently. Needs an api token that can read zones and DNS. Throws if
+    // a lookup fails.
     public function GetDnsSecStatuses(array $domains): array
     {
         $zoneIds = $this->getZoneIds();
-        $statuses = [];
+        $urls = [];
         foreach ($domains as $domain) {
             $name = strtolower($domain);
-            if (!isset($zoneIds[$name])) {
-                continue;
+            if (isset($zoneIds[$name])) {
+                $urls[$name] = $this->apiUrl('/zones/' . rawurlencode($zoneIds[$name]) . '/dnssec');
             }
-            $response = $this->apiRequest('GET', '/zones/' . rawurlencode($zoneIds[$name]) . '/dnssec');
+        }
+
+        $statuses = [];
+        foreach (httpGetJsonMulti($urls, ["Authorization: Bearer {$this->apiToken}"]) as $name => $response) {
+            $response = $this->checkResponse($response);
             $statuses[$name] = (string)($response['result']['status'] ?? '');
         }
         return $statuses;
