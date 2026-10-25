@@ -92,8 +92,10 @@ function hideTransferredToCloudflare(array $domains): array
 // getDnsSecStatuses looks up the DNSSEC status of the domains at registrars
 // that can report it without managing the DS records here (only Cloudflare).
 // The statuses are cached for 10 minutes, since looking them up takes an API
-// call per domain on every load of the domain list. Returns the statuses keyed by registrar key and lowercased domain name, and
-// the errors from any registrar whose lookup failed.
+// call per domain on every load of the domain list. Returns the statuses
+// keyed by registrar key and lowercased domain name, and the errors from any
+// registrar whose lookup failed (including when older cached statuses are
+// shown instead).
 function getDnsSecStatuses(array $clients, array $domains): array
 {
     $statuses = [];
@@ -116,7 +118,10 @@ function getDnsSecStatuses(array $clients, array $domains): array
         try {
             $statuses[$registrarKey] = cacheRemember($cacheKey, 600, function () use ($client, $names) {
                 return $client->GetDnsSecStatuses($names);
-            });
+            }, $warning);
+            if ($warning !== null) {
+                $errors[] = $client->GetRegistrarName() . ": DNSSEC status is $warning";
+            }
         } catch (Throwable $e) {
             $errors[] = $client->GetRegistrarName() . ': failed to load the DNSSEC status: ' . $e->getMessage();
         }
@@ -139,32 +144,35 @@ function formatDnsSecStatus(string $status): string
 
 // getRegistrarPrices returns a registrar's register, renew, and transfer prices
 // for each TLD in $tlds, cached for 12 hours. Throws if the prices couldn't
-// be fetched and there's no earlier cached copy to fall back on. Pricing rarely changes and
-// fetching it live can mean dozens of outbound API calls per page
-// load - caching is what keeps the pricing pages from timing out a fronting
-// proxy/load balancer under normal use.
-function getRegistrarPrices(string $registrarKey, RegistrarClient $client, array $tlds): array
+// be fetched and there's no earlier cached copy to fall back on. If an earlier
+// copy is returned instead, $warning says so (see cacheRemember). Pricing
+// rarely changes and fetching it live can mean dozens of outbound API calls
+// per page load - caching is what keeps the pricing pages from timing out a
+// fronting proxy/load balancer under normal use.
+function getRegistrarPrices(string $registrarKey, RegistrarClient $client, array $tlds, ?string &$warning = null): array
 {
+    $tlds = array_values(array_unique($tlds));
     sort($tlds);
     $cacheKey = 'pricing_' . $registrarKey . '_' . md5(implode(',', $tlds));
     return cacheRemember($cacheKey, 43200, function () use ($client, $tlds) {
         return $client->GetAllPrices($tlds);
-    });
+    }, $warning);
 }
 
 // getRenewalPrices is like getRegistrarPrices but only needs renewal prices.
 // eNom has a renewal-only lookup that makes a third of the API calls, so it's
 // used for eNom; the other registrars return all their pricing in one call.
-function getRenewalPrices(string $registrarKey, RegistrarClient $client, array $tlds): array
+function getRenewalPrices(string $registrarKey, RegistrarClient $client, array $tlds, ?string &$warning = null): array
 {
     if (!($client instanceof EnomClient)) {
-        return getRegistrarPrices($registrarKey, $client, $tlds);
+        return getRegistrarPrices($registrarKey, $client, $tlds, $warning);
     }
+    $tlds = array_values(array_unique($tlds));
     sort($tlds);
     $cacheKey = 'renewal_prices_' . $registrarKey . '_' . md5(implode(',', $tlds));
     return cacheRemember($cacheKey, 43200, function () use ($client, $tlds) {
         return $client->GetAllRenewalPrices($tlds);
-    });
+    }, $warning);
 }
 
 // setFlashError stores an error message to show on the next page load.

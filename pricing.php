@@ -11,7 +11,10 @@ $errors = $clientErrors;
 // A registrar whose pricing can't be loaded still gets its columns, showing N/A.
 foreach ($clients as $registrarKey => $client) {
   try {
-    $prices[$client->GetRegistrarName()] = getRegistrarPrices($registrarKey, $client, $config['pricingTLDs']);
+    $prices[$client->GetRegistrarName()] = getRegistrarPrices($registrarKey, $client, $config['pricingTLDs'], $warning);
+    if ($warning !== null) {
+      $errors[] = $client->GetRegistrarName() . ": prices are $warning";
+    }
   } catch (Throwable $e) {
     $prices[$client->GetRegistrarName()] = [];
     $errors[] = $client->GetRegistrarName() . ': failed to load prices: ' . $e->getMessage();

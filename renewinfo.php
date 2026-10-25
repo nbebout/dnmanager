@@ -13,7 +13,10 @@ foreach ($domains as $domain) {
 $renewalPrices = [];
 foreach ($clients as $registrarKey => $client) {
   try {
-    $renewalPrices[$registrarKey] = getRenewalPrices($registrarKey, $client, $config['pricingTLDs']);
+    $renewalPrices[$registrarKey] = getRenewalPrices($registrarKey, $client, $config['pricingTLDs'], $warning);
+    if ($warning !== null) {
+      $errors[] = $client->GetRegistrarName() . ": renewal prices are $warning";
+    }
   } catch (Throwable $e) {
     $errors[] = $client->GetRegistrarName() . ': failed to load renewal prices: ' . $e->getMessage();
   }
