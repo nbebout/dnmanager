@@ -70,9 +70,15 @@ class NameCheapClient implements RegistrarClient
     private function apiGet(array $queryData): SimpleXMLElement
     {
         $qs = http_build_query($queryData);
-        $xml = httpGetXml("{$this->server}{$this->apiEndpoint}?$qs");
+        return $this->checkResponse(httpGetXml("{$this->server}{$this->apiEndpoint}?$qs"), $queryData['Command']);
+    }
+
+    // checkResponse returns a parsed API response, or throws a RuntimeException
+    // if the $command request failed ($xml is false) or Namecheap reported an error.
+    private function checkResponse($xml, string $command): SimpleXMLElement
+    {
         if ($xml === false) {
-            throw new RuntimeException("Namecheap API request failed ({$queryData['Command']})");
+            throw new RuntimeException("Namecheap API request failed ($command)");
         }
         if ((string)$xml['Status'] !== 'OK') {
             $messages = array_map('strval', iterator_to_array($xml->Errors->Error, false));
@@ -222,13 +228,12 @@ class NameCheapClient implements RegistrarClient
     }
 
     // pricesFromXml pulls the 1-year register, renew, and transfer prices out of
-    // a getPricing response. Throws if the request failed.
+    // a getPricing response. Throws if the request failed or Namecheap reported
+    // an error, so a failure isn't cached as "no price".
     private function pricesFromXml($respxml, string $tld): array
     {
         $prices = [];
-        if ($respxml === false) {
-            throw new RuntimeException("Namecheap pricing request failed ($tld)");
-        }
+        $respxml = $this->checkResponse($respxml, "namecheap.users.getPricing $tld");
         $resultxml = $respxml->CommandResponse->UserGetPricingResult->ProductType;
         if (!isset($resultxml->ProductCategory)) {
             return $prices; // Namecheap has no pricing for this TLD

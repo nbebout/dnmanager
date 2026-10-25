@@ -21,6 +21,10 @@ function cacheDir(): string
 // returns it. If $callback() throws, any existing (even expired) cached
 // value is returned as a fallback rather than propagating the failure -
 // stale pricing data is far better than a fatal error or a timed-out page.
+// An empty result isn't stored, and an existing cached value is returned
+// in its place: it more likely means something went wrong than that a
+// registrar has no prices, and storing it would hide the data until the
+// cache expires.
 function cacheRemember(string $key, int $ttlSeconds, callable $callback)
 {
     $file = cacheDir() . '/' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $key) . '.json';
@@ -42,6 +46,10 @@ function cacheRemember(string $key, int $ttlSeconds, callable $callback)
             return $decoded['value']; // serve stale data rather than fail the page
         }
         throw $e;
+    }
+
+    if (empty($value)) {
+        return isset($decoded['value']) ? $decoded['value'] : $value;
     }
 
     @file_put_contents($file, json_encode(['time' => time(), 'value' => $value]), LOCK_EX);

@@ -62,7 +62,13 @@ class ResellerClubClient implements RegistrarClient
     if ($extraQuery !== '') {
       $url .= "&$extraQuery";
     }
-    $xml = $post ? httpPostXml($url) : httpGetXml($url);
+    return $this->checkResponse($post ? httpPostXml($url) : httpGetXml($url), $command);
+  }
+
+  // checkResponse returns a parsed API response, or throws a RuntimeException
+  // if the $command request failed ($xml is false) or ResellerClub reported an error.
+  private function checkResponse($xml, string $command): SimpleXMLElement
+  {
     if ($xml === false) {
       throw new RuntimeException("ResellerClub API request failed ($command)");
     }
@@ -339,10 +345,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData = $this->baseApiArgs();
     $qs = http_build_query($queryData);
     $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
-    $xml = httpGetXml($url);
-    if ($xml === false) {
-      throw new RuntimeException('ResellerClub pricing request failed');
-    }
+    $xml = $this->checkResponse(httpGetXml($url), 'reseller-cost-price.xml');
     $tldtolookfor = "dot$tld";
     if ($tld == 'biz') {
       $tldtolookfor = 'dombiz';
@@ -404,10 +407,7 @@ class ResellerClubClient implements RegistrarClient
     $queryData = $this->baseApiArgs();
     $qs = http_build_query($queryData);
     $url = "{$this->server}/api/products/reseller-cost-price.xml?$qs";
-    $xml = httpGetXml($url);
-    if ($xml === false) {
-      throw new RuntimeException('ResellerClub pricing request failed');
-    }
+    $xml = $this->checkResponse(httpGetXml($url), 'reseller-cost-price.xml');
     $prices = array();
     foreach ($tldarray as $tld) {
       foreach ($xml->entry as $entry) {

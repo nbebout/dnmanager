@@ -59,9 +59,15 @@ class EnomClient implements RegistrarClient
     private function apiGet(array $queryData): SimpleXMLElement
     {
         $qs = http_build_query($queryData);
-        $xml = httpGetXml("{$this->server}{$this->apiEndpoint}?$qs");
+        return $this->checkResponse(httpGetXml("{$this->server}{$this->apiEndpoint}?$qs"), $queryData['command']);
+    }
+
+    // checkResponse returns a parsed API response, or throws a RuntimeException
+    // if the $command request failed ($xml is false) or eNom reported an error.
+    private function checkResponse($xml, string $command): SimpleXMLElement
+    {
         if ($xml === false) {
-            throw new RuntimeException("eNom API request failed ({$queryData['command']})");
+            throw new RuntimeException("eNom API request failed ($command)");
         }
         if ((int)$xml->ErrCount > 0) {
             $messages = array_map('strval', iterator_to_array($xml->errors->children(), false));
@@ -201,13 +207,11 @@ class EnomClient implements RegistrarClient
     }
 
     // priceFromXml pulls a price out of a PE_GetResellerPrice response, returning
-    // null if the response didn't contain one (e.g. a TLD eNom doesn't sell).
-    // Throws if the request itself failed, so a failure isn't cached as "no price".
+    // null if the response didn't contain one. Throws if the request failed or
+    // eNom reported an error, so a failure isn't cached as "no price".
     private function priceFromXml($xml): ?float
     {
-        if ($xml === false) {
-            throw new RuntimeException('eNom pricing request failed');
-        }
+        $xml = $this->checkResponse($xml, 'PE_GetResellerPrice');
         if (!isset($xml->productprice->price)) {
             return null;
         }
