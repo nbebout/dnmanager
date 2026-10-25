@@ -133,16 +133,16 @@ function formatDnsSecStatus(string $status): string
 }
 
 // getRegistrarPrices returns a registrar's register, renew, and transfer prices
-// for each TLD in $tlds, cached for 15 minutes. Throws if the prices couldn't
+// for each TLD in $tlds, cached for 12 hours. Throws if the prices couldn't
 // be fetched and there's no earlier cached copy to fall back on. Pricing rarely changes and
-// fetching it live can mean dozens of sequential outbound API calls per page
+// fetching it live can mean dozens of outbound API calls per page
 // load - caching is what keeps the pricing pages from timing out a fronting
 // proxy/load balancer under normal use.
 function getRegistrarPrices(string $registrarKey, RegistrarClient $client, array $tlds): array
 {
     sort($tlds);
     $cacheKey = 'pricing_' . $registrarKey . '_' . md5(implode(',', $tlds));
-    return cacheRemember($cacheKey, 900, function () use ($client, $tlds) {
+    return cacheRemember($cacheKey, 43200, function () use ($client, $tlds) {
         return $client->GetAllPrices($tlds);
     });
 }
@@ -157,7 +157,7 @@ function getRenewalPrices(string $registrarKey, RegistrarClient $client, array $
     }
     sort($tlds);
     $cacheKey = 'renewal_prices_' . $registrarKey . '_' . md5(implode(',', $tlds));
-    return cacheRemember($cacheKey, 900, function () use ($client, $tlds) {
+    return cacheRemember($cacheKey, 43200, function () use ($client, $tlds) {
         return $client->GetAllRenewalPrices($tlds);
     });
 }
